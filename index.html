@@ -1,717 +1,1156 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Service Queue System</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
-                    colors: { primary: '#3B82F6', secondary: '#EC4899' }
-                }
-            }
-        }
-    </script>
-    
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
-        
-        @keyframes pulse-bg {
-            0% { background-color: #e2e8f0; }
-            50% { background-color: #cbd5e1; }
-            100% { background-color: #e2e8f0; }
-        }
-        .skeleton { animation: pulse-bg 1.5s infinite; border-radius: 0.5rem; }
-        
-        .border-priority-แดง { border-left: 6px solid #ef4444 !important; }
-        .border-priority-ส้ม { border-left: 6px solid #f97316 !important; }
-        .border-priority-เหลือง { border-left: 6px solid #eab308 !important; }
-        .border-priority-เขียว { border-left: 6px solid #22c55e !important; }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบคิวงานเทคโนโลยีโรงเรียน - School Tech Queue</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- FullCalendar CSS and JS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/th.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Kanit', sans-serif;
+      background-color: #f8fafc;
+    }
+    .text-pink-custom { color: #f472b6; }
+    .bg-pink-custom { background-color: #f472b6; }
+    .bg-gradient-pink-blue {
+      background: linear-gradient(135deg, #60a5fa 0%, #f472b6 100%);
+    }
+    .card-urgent-red { border-left: 8px solid #ef4444; background: #fef2f2; }
+    .card-urgent-orange { border-left: 8px solid #f97316; background: #fff7ed; }
+    .card-urgent-yellow { border-left: 8px solid #eab308; background: #fef9c3; }
+    .card-urgent-green { border-left: 8px solid #10b981; background: #f0fdf4; }
+    /* Skeleton Loading CSS */
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="min-h-screen flex flex-col">
 
-<div id="app" class="h-full flex flex-col relative">
+  <!-- Audio Alert for New Job Notification -->
+  <audio id="notificationSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav" preload="auto"></audio>
 
-    <!-- Skeleton Loading -->
-    <div v-if="isLoading" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-        <i data-lucide="loader-2" class="animate-spin text-secondary w-16 h-16 mb-4"></i>
-        <h2 class="text-xl font-semibold text-primary">กำลังโหลดข้อมูลระบบ...</h2>
-        <div class="w-64 mt-6">
-            <div class="h-4 skeleton w-full mb-2"></div>
-            <div class="h-4 skeleton w-5/6 mx-auto mb-2"></div>
-            <div class="h-4 skeleton w-4/6 mx-auto"></div>
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div v-if="!user" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border-t-8 border-secondary">
-            <h2 class="text-2xl font-bold text-center mb-6 text-primary">ลงทะเบียน / เข้าสู่ระบบ</h2>
-            
-            <div class="flex border-b mb-6">
-                <button @click="loginMode = 'user'" :class="{'border-b-2 border-primary text-primary font-bold': loginMode === 'user'}" class="flex-1 pb-2 text-center text-gray-500">ผู้มอบหมายงาน</button>
-                <button @click="loginMode = 'admin'" :class="{'border-b-2 border-secondary text-secondary font-bold': loginMode === 'admin'}" class="flex-1 pb-2 text-center text-gray-500">ผู้รับผิดชอบ (IT)</button>
-            </div>
-
-            <div v-if="loginMode === 'user'">
-                <label class="block text-sm font-medium mb-2">ชื่อ-นามสกุล (สำหรับใช้ติดตามคิวงาน)</label>
-                <input v-model="loginData.name" type="text" @keyup.enter="login('user')" class="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-primary outline-none" placeholder="เช่น สมชาย ใจดี">
-                <button @click="login('user')" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg shadow-lg transition duration-200">เข้าสู่ระบบ</button>
-            </div>
-            <div v-else>
-                <label class="block text-sm font-medium mb-2">รหัสผ่านเจ้าหน้าที่</label>
-                <input v-model="loginData.password" type="password" @keyup.enter="login('admin')" class="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-secondary outline-none" placeholder="••••••••">
-                <button @click="login('admin')" class="w-full bg-secondary hover:bg-pink-600 text-white font-bold py-3 rounded-lg shadow-lg transition duration-200">เข้าสู่ระบบเจ้าหน้าที่</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Navbar -->
-    <nav class="bg-white shadow-md z-10 px-6 py-4 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="bg-gradient-to-r from-primary to-secondary p-2 rounded-lg">
-                <i data-lucide="monitor-smartphone" class="text-white"></i>
-            </div>
-            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary hidden sm:block">
-                IT Service Queue
-            </h1>
-        </div>
-        
-        <div class="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar">
-            <button @click="currentTab = 'dashboard'" :class="{'text-primary border-b-2 border-primary': currentTab === 'dashboard'}" class="pb-1 font-medium whitespace-nowrap hover:text-primary transition">หน้าแรก (สรุป)</button>
-            <button @click="currentTab = 'all'" :class="{'text-primary border-b-2 border-primary': currentTab === 'all'}" class="pb-1 font-medium whitespace-nowrap hover:text-primary transition">รายการทั้งหมด</button>
-            <button @click="currentTab = 'calendar'" :class="{'text-primary border-b-2 border-primary': currentTab === 'calendar'}" class="pb-1 font-medium whitespace-nowrap hover:text-primary transition">ปฏิทินงาน</button>
-            <button @click="currentTab = 'completed'" :class="{'text-primary border-b-2 border-primary': currentTab === 'completed'}" class="pb-1 font-medium whitespace-nowrap hover:text-primary transition">ผลงาน/เสร็จแล้ว</button>
-            <button v-if="userRole === 'user'" @click="currentTab = 'myjobs'" :class="{'text-primary border-b-2 border-primary': currentTab === 'myjobs'}" class="pb-1 font-medium whitespace-nowrap hover:text-primary transition">งานของฉัน</button>
-        </div>
-
-        <div class="flex items-center gap-4">
-            <div v-if="user" class="text-right hidden md:block">
-                <div class="text-sm font-bold">{{ user }}</div>
-                <div class="text-xs text-gray-500">{{ userRole === 'admin' ? 'เจ้าหน้าที่' : 'ผู้ใช้งาน' }}</div>
-            </div>
-            <button v-if="user" @click="logout" class="p-2 text-gray-500 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-full transition shadow-sm" title="ออกจากระบบ">
-                <i data-lucide="log-out"></i>
+  <!-- NAVIGATION BAR -->
+  <nav class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center bg-gradient-pink-blue text-white p-2 rounded-xl shadow-md">
+            <i data-lucide="cpu" class="w-6 h-6 mr-1"></i>
+            <span class="font-bold text-lg tracking-wider">SCHOOL TECH</span>
+          </div>
+          <div class="hidden md:ml-6 md:flex md:space-x-4">
+            <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-2 rounded-md text-sm font-medium text-blue-600 border-b-2 border-blue-600 flex items-center gap-1" id="tab-dashboard">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i> รายงานภาพรวม
             </button>
+            <button onclick="switchTab('all-jobs')" class="tab-btn px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-blue-500 flex items-center gap-1" id="tab-all-jobs">
+              <i data-lucide="layers" class="w-4 h-4"></i> คิวงานทั้งหมด
+            </button>
+            <button onclick="switchTab('calendar-view')" class="tab-btn px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-blue-500 flex items-center gap-1" id="tab-calendar">
+              <i data-lucide="calendar" class="w-4 h-4"></i> ตารางดำเนินงาน
+            </button>
+            <button onclick="switchTab('my-jobs')" class="tab-btn px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-blue-500 flex items-center gap-1" id="tab-my-jobs">
+              <i data-lucide="user-check" class="w-4 h-4"></i> งานของฉัน
+            </button>
+          </div>
         </div>
-    </nav>
+        <div class="flex items-center space-x-2">
+          <!-- User Profile Display -->
+          <div id="userProfileDisplay" class="hidden text-right">
+            <p class="text-xs text-gray-400">เข้าสู่ระบบโดย</p>
+            <p class="text-sm font-bold text-blue-600" id="currentUserName">คุณสมพงษ์</p>
+          </div>
+          <button id="authBtn" onclick="openLoginModal()" class="flex items-center gap-1 bg-gradient-pink-blue hover:opacity-90 text-white font-medium text-sm px-4 py-2 rounded-xl transition shadow-sm">
+            <i data-lucide="log-in" class="w-4 h-4"></i> <span>เข้าสู่ระบบ</span>
+          </button>
+          <button id="logoutBtn" onclick="handleLogout()" class="hidden flex items-center gap-1 bg-red-100 text-red-600 hover:bg-red-200 font-medium text-sm px-4 py-2 rounded-xl transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Navigation Tab links -->
+    <div class="md:hidden flex justify-around border-t py-2 bg-gray-50">
+      <button onclick="switchTab('dashboard')" class="mobile-tab-btn flex flex-col items-center text-blue-600" id="m-tab-dashboard">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">ภาพรวม</span>
+      </button>
+      <button onclick="switchTab('all-jobs')" class="mobile-tab-btn flex flex-col items-center text-gray-400" id="m-tab-all-jobs">
+        <i data-lucide="layers" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">คิวงาน</span>
+      </button>
+      <button onclick="switchTab('calendar-view')" class="mobile-tab-btn flex flex-col items-center text-gray-400" id="m-tab-calendar">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">ตารางงาน</span>
+      </button>
+      <button onclick="switchTab('my-jobs')" class="mobile-tab-btn flex flex-col items-center text-gray-400" id="m-tab-my-jobs">
+        <i data-lucide="user-check" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">งานของฉัน</span>
+      </button>
+    </div>
+  </nav>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6 pb-24 relative">
-        
-        <!-- Tab: Dashboard -->
-        <div v-if="currentTab === 'dashboard'" class="max-w-6xl mx-auto space-y-6">
-            <!-- Stats Dashboard -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
-                    <div><p class="text-sm text-gray-500">งานทั้งหมด</p><h3 class="text-2xl font-bold">{{ stats.total }}</h3></div>
-                    <div class="p-3 bg-blue-50 rounded-full text-blue-500"><i data-lucide="layers"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-500 flex items-center justify-between">
-                    <div><p class="text-sm text-gray-500">รอดำเนินการ</p><h3 class="text-2xl font-bold">{{ stats.pending }}</h3></div>
-                    <div class="p-3 bg-yellow-50 rounded-full text-yellow-500"><i data-lucide="clock"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
-                    <div><p class="text-sm text-gray-500">เสร็จสิ้น</p><h3 class="text-2xl font-bold">{{ stats.completed }}</h3></div>
-                    <div class="p-3 bg-green-50 rounded-full text-green-500"><i data-lucide="check-circle"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
-                    <div><p class="text-sm text-gray-500">เลยกำหนด/ด่วน</p><h3 class="text-2xl font-bold text-red-500">{{ stats.overdue }}</h3></div>
-                    <div class="p-3 bg-red-50 rounded-full text-red-500"><i data-lucide="alert-triangle"></i></div>
-                </div>
+  <!-- APP MAIN CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- BACKGROUND ALERT BAR FOR NEW WORK -->
+    <div id="newJobNotificationAlert" class="hidden mb-6 bg-blue-50 border-l-4 border-blue-600 p-4 rounded-xl shadow-sm animate-bounce flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+        </span>
+        <p class="text-sm font-semibold text-blue-800" id="alertNotificationText">มีงานใหม่ถูกเพิ่มเข้ามาในระบบเมื่อสักครู่! ตรวจสอบคิวงานเลย</p>
+      </div>
+      <button onclick="this.parentElement.classList.add('hidden')" class="text-blue-500 hover:text-blue-800">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- SKELETON LOADING TEMPLATE -->
+    <div id="skeletonContainer" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="skeleton h-28 rounded-2xl"></div>
+        <div class="skeleton h-28 rounded-2xl"></div>
+        <div class="skeleton h-28 rounded-2xl"></div>
+        <div class="skeleton h-28 rounded-2xl"></div>
+      </div>
+      <div class="flex justify-between items-center py-4">
+        <div class="skeleton h-10 w-48 rounded-xl"></div>
+        <div class="skeleton h-10 w-36 rounded-xl"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="skeleton h-64 rounded-2xl"></div>
+        <div class="skeleton h-64 rounded-2xl"></div>
+        <div class="skeleton h-64 rounded-2xl"></div>
+      </div>
+    </div>
+
+    <!-- REAL CONTENT SECTION (Initially Hidden) -->
+    <div id="realContent" class="hidden space-y-8">
+      
+      <!-- ================= SECTION: DASHBOARD ================= -->
+      <section id="section-dashboard" class="content-tab space-y-8">
+        <!-- Dashboard Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="bg-gradient-pink-blue p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+            <div class="absolute right-3 bottom-1 opacity-10">
+              <i data-lucide="folders" class="w-24 h-24"></i>
             </div>
-
-            <!-- In Progress (What's currently happening) -->
-            <div v-if="inProgressJobs.length > 0">
-                <h3 class="text-lg font-bold mb-4 text-blue-600 flex items-center gap-2"><i data-lucide="activity"></i> งานที่กำลังดำเนินการอยู่</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div v-for="job in inProgressJobs" :key="job.JobID" class="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm">
-                        <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">{{ job.JobID }}</span>
-                        <h4 class="font-bold mt-2 truncate">{{ job.Details.substring(0,40) }}...</h4>
-                        <p class="text-sm text-gray-600 mt-1">ผู้สั่ง: {{ job.Name }} (กำหนด {{ formatDate(job.DueDate) }})</p>
-                    </div>
-                </div>
+            <p class="text-sm font-medium opacity-80">จำนวนงานทั้งหมด</p>
+            <h3 class="text-4xl font-bold mt-2" id="stat-total">0</h3>
+            <p class="text-xs mt-3 bg-white/20 inline-block px-2 py-1 rounded-full">อัปเดตเรียลไทม์</p>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-md relative overflow-hidden">
+            <div class="absolute right-3 bottom-1 text-emerald-50 opacity-50">
+              <i data-lucide="check-circle-2" class="w-24 h-24"></i>
             </div>
+            <p class="text-sm font-medium text-gray-500">ดำเนินการแล้ว</p>
+            <h3 class="text-4xl font-bold mt-2 text-emerald-600" id="stat-completed">0</h3>
+            <p class="text-xs mt-3 text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-full">ปิดงานเรียบร้อย</p>
+          </div>
 
-            <!-- Urgent Jobs -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-md relative overflow-hidden">
+            <div class="absolute right-3 bottom-1 text-blue-50 opacity-50">
+              <i data-lucide="clock" class="w-24 h-24"></i>
+            </div>
+            <p class="text-sm font-medium text-gray-500">รอดำเนินการ</p>
+            <h3 class="text-4xl font-bold mt-2 text-blue-600" id="stat-pending">0</h3>
+            <p class="text-xs mt-3 text-blue-600 bg-blue-50 inline-block px-2 py-1 rounded-full">อยู่ในคิวการทำงาน</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-md relative overflow-hidden">
+            <div class="absolute right-3 bottom-1 text-red-50 opacity-50">
+              <i data-lucide="alert-triangle" class="w-24 h-24"></i>
+            </div>
+            <p class="text-sm font-medium text-gray-500">เลยระยะเวลาดำเนินการ</p>
+            <h3 class="text-4xl font-bold mt-2 text-rose-600" id="stat-overdue">0</h3>
+            <p class="text-xs mt-3 text-rose-600 bg-rose-50 inline-block px-2 py-1 rounded-full">เลยกำหนดวันใช้งาน</p>
+          </div>
+        </div>
+
+        <!-- Dashboard Header Actions -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">คิวการทำงานและการ์ดสถานะล่าสุด</h2>
+            <p class="text-sm text-gray-500">จัดเรียงตามลำดับความเร่งด่วน โดยคิวที่ใกล้ถึงกำหนดวันใช้งาน 5 วันจะถูกยกขึ้นมาบนสุดอัตโนมัติ</p>
+          </div>
+          <button onclick="openAssignModal()" class="flex items-center gap-2 bg-gradient-pink-blue hover:opacity-95 text-white font-semibold px-6 py-3 rounded-2xl shadow-md transition duration-200">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>มอบหมายงานใหม่</span>
+          </button>
+        </div>
+
+        <!-- JOB LIST (GRID OF CARDS) -->
+        <div id="jobCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Cards injected via Javascript -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: ALL JOBS ================= -->
+      <section id="section-all-jobs" class="content-tab space-y-6 hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
-                <h3 class="text-lg font-bold mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="flame" class="text-red-500"></i> งานด่วน (ติดตามแล้ว / เหลือน้อยกว่า 5 วัน)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <job-card v-for="job in urgentJobs" :key="job.JobID" :job="job" :user-role="userRole" :user="user" @open="openJobDetails" @follow="followUpJob" @status="openStatusUpdate"></job-card>
-                    <div v-if="urgentJobs.length === 0" class="col-span-full text-center text-gray-400 py-8 bg-white rounded-xl border border-dashed">
-                        ไม่มีงานด่วนในขณะนี้
-                    </div>
-                </div>
+              <h2 class="text-xl font-bold text-gray-800">รายการคิวงานทั้งหมด</h2>
+              <p class="text-xs text-gray-400 mt-1">คัดกรอง หรือค้นหาคิวงานของโรงเรียน</p>
             </div>
+            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+              <input type="text" id="searchInput" oninput="filterAllJobs()" placeholder="ค้นหาชื่องาน/ผู้รับผิดชอบ..." class="px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-64">
+              <select id="filterStatus" onchange="filterAllJobs()" class="px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+                <option value="ทั้งหมด">สถานะ: ทั้งหมด</option>
+                <option value="รอดำเนินการ">รอดำเนินการ</option>
+                <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                <option value="ดำเนินการแล้ว">ดำเนินการแล้ว</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสงาน</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่องาน</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้มอบหมาย (กลุ่มงาน)</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันกำหนดใช้</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ระดับความสำคัญ</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="allJobsTableBody" class="bg-white divide-y divide-gray-200 text-sm">
+                <!-- Data rows injected via Javascript -->
+              </tbody>
+            </table>
+          </div>
         </div>
+      </section>
 
-        <!-- Tab: Calendar View -->
-        <div v-if="currentTab === 'calendar'" class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">ตารางการดำเนินงาน</h2>
-                <div class="flex gap-4 items-center">
-                    <button @click="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-full transition"><i data-lucide="chevron-left"></i></button>
-                    <span class="text-lg font-bold w-32 text-center">{{ monthNames[currentMonth] }} {{ currentYear }}</span>
-                    <button @click="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-full transition"><i data-lucide="chevron-right"></i></button>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden">
-                <!-- Days Header -->
-                <div v-for="day in ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']" class="bg-gray-50 text-center py-2 text-sm font-bold text-gray-500">
-                    {{ day }}
-                </div>
-                <!-- Calendar Grid -->
-                <div v-for="(day, index) in calendarDays" :key="index" class="bg-white min-h-[100px] p-2 hover:bg-gray-50 transition cursor-pointer relative" :class="{'opacity-50': day.empty, 'bg-blue-50': isToday(day.fullDate)}" @click="!day.empty && day.jobs.length > 0 && showDayJobs(day)">
-                    <span v-if="!day.empty" class="text-sm font-medium" :class="{'text-blue-600 font-bold': isToday(day.fullDate)}">{{ day.date }}</span>
-                    <div v-if="!day.empty" class="mt-1 flex flex-col gap-1">
-                        <div v-for="job in day.jobs.slice(0,3)" :key="job.JobID" class="text-[10px] px-1 rounded truncate text-white shadow-sm" :class="priorityBg(job.Priority)">
-                            {{ job.Name.split(' ')[0] }}
-                        </div>
-                        <div v-if="day.jobs.length > 3" class="text-[10px] text-gray-500 text-center font-bold">
-                            +{{ day.jobs.length - 3 }} งาน
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <!-- ================= SECTION: CALENDAR ================= -->
+      <section id="section-calendar-view" class="content-tab space-y-6 hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+          <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-800">ตารางการดำเนินงาน (Calendar View)</h2>
+            <p class="text-sm text-gray-500">ปฏิทินแสดงคิวงานที่ต้องใช้วัสดุอุปกรณ์และระบบสารสนเทศตามวันที่กำหนด</p>
+          </div>
+          <div id="calendar" class="min-h-[600px]"></div>
         </div>
+      </section>
 
-        <!-- Tab: All / Completed / My Jobs -->
-        <div v-if="currentTab === 'all' || currentTab === 'myjobs' || currentTab === 'completed'" class="max-w-6xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-xl font-bold">
-                    {{ currentTab === 'all' ? 'รายการงานทั้งหมด' : currentTab === 'completed' ? 'ผลงานที่ดำเนินการแล้ว' : 'สถานะงานของฉัน' }}
-                </h2>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <input v-model="searchQuery" type="text" placeholder="ค้นหางาน, ชื่อผู้สั่ง..." class="p-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-primary outline-none">
-                    <select v-if="currentTab !== 'completed'" v-model="filterStatus" class="p-2 border rounded-lg outline-none bg-white">
-                        <option value="">ทุกสถานะ</option>
-                        <option value="รอดำเนินการ">รอดำเนินการ</option>
-                        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+      <!-- ================= SECTION: MY JOBS ================= -->
+      <section id="section-my-jobs" class="content-tab space-y-6 hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+          <div class="border-b pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">งานที่ฉันรับผิดชอบ / คิวงานของฉัน</h2>
+              <p class="text-sm text-gray-500">พื้นที่ติดตามงาน จัดการ และส่งงานสำหรับเจ้าหน้าที่ และประวัติการมอบหมายงานของคุณ</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="roleBadge" class="px-3 py-1 text-xs rounded-full font-bold bg-pink-100 text-pink-700">ผู้มอบหมายงาน</span>
+            </div>
+          </div>
+          
+          <div id="unauthorizedAssigneeNotice" class="text-center py-12 space-y-4">
+            <div class="bg-blue-50 text-blue-700 p-4 rounded-xl max-w-md mx-auto">
+              <i data-lucide="info" class="w-8 h-8 mx-auto mb-2"></i>
+              <p class="font-semibold">สิทธิ์เฉพาะเจ้าหน้าที่เทคโนโลยี</p>
+              <p class="text-xs mt-1">ฟังก์ชันอัปเดตงานสำหรับเจ้าหน้าที่ กรุณาเข้าสู่ระบบด้วยรหัสสำหรับผู้ดูแลระบบงานเทคโนโลยี</p>
+            </div>
+          </div>
+
+          <div id="assigneeWorkspace" class="hidden space-y-6">
+            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                <p class="text-sm font-semibold">เข้าสู่ระบบสิทธิ์ "เจ้าหน้าที่เทคโนโลยี" เรียบร้อยแล้ว</p>
+              </div>
+              <span class="text-xs bg-emerald-600 text-white font-bold px-2 py-1 rounded-md">ADMIN CONTROL ACTIVE</span>
+            </div>
+
+            <!-- Dashboard of current working task -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Column: Currently Doing -->
+              <div class="border p-6 rounded-xl space-y-4 bg-blue-50/50">
+                <h3 class="text-md font-bold text-blue-800 flex items-center gap-1">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                  กำลังดำเนินการอยู่ขณะนี้
+                </h3>
+                <div id="currentWorkingTaskBox" class="bg-white p-4 rounded-xl shadow-sm border space-y-2">
+                  <p class="text-xs text-gray-400">ยังไม่มีงานที่อยู่ในสถานะกำลังดำเนินการ</p>
+                </div>
+              </div>
+
+              <!-- Column: Graphic Upload and Submit -->
+              <div class="border p-6 rounded-xl space-y-4 bg-white">
+                <h3 class="text-md font-bold text-gray-800">อัปเดตและรายงานผลงานกราฟิก/เทคโนโลยี</h3>
+                <form id="submitResultForm" class="space-y-4" onsubmit="handleUpdateJobDetails(event)">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">เลือกรหัสงานที่ต้องการส่ง</label>
+                    <select id="updateJobSelect" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required>
+                      <!-- Options loaded via JS -->
                     </select>
-                </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">รายละเอียดงานกราฟิก หรือรายงานผลการติดตั้ง</label>
+                    <textarea id="updateJobDetailInput" rows="3" placeholder="ระบุรายละเอียดการออกแบบ ลิงก์ที่เกี่ยวข้อง หรือสเปคที่ใช้" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">เปลี่ยนสถานะ</label>
+                    <select id="updateJobStatusSelect" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+                      <option value="กำลังดำเนินการ">กำลังดำเนินการ (In Progress)</option>
+                      <option value="ดำเนินการแล้ว">ดำเนินการแล้ว (Completed)</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition">
+                    บันทึกการส่งงานและอัปเดตสถานะ
+                  </button>
+                </form>
+              </div>
             </div>
-
-            <!-- List Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <job-card v-for="job in filteredJobs" :key="job.JobID" :job="job" :user-role="userRole" :user="user" @open="openJobDetails" @follow="followUpJob" @status="openStatusUpdate"></job-card>
-            </div>
-            
-            <div v-if="filteredJobs.length === 0" class="text-center py-12 text-gray-500 bg-white rounded-xl shadow-sm mt-4">
-                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
-                <p>ไม่พบรายการงานในหมวดหมู่นี้</p>
-            </div>
+          </div>
         </div>
+      </section>
 
-    </main>
-
-    <!-- Floating Action Button -->
-    <button v-if="userRole === 'user'" @click="showNewJobModal = true" class="fixed bottom-6 right-6 bg-gradient-to-r from-primary to-secondary text-white rounded-full p-4 shadow-[0_10px_25px_rgba(236,72,153,0.5)] hover:scale-105 transition duration-300 z-20 group">
-        <i data-lucide="plus" class="w-8 h-8 group-hover:rotate-90 transition duration-300"></i>
-    </button>
-
-    <!-- 1. New Job Modal -->
-    <div v-if="showNewJobModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 mt-20">
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                <h2 class="text-xl font-bold text-gray-800">ฟอร์มมอบหมายงาน / สั่งทำสื่อ</h2>
-                <button @click="showNewJobModal = false" class="text-gray-500 hover:text-red-500 transition"><i data-lucide="x"></i></button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">ชื่อผู้สั่ง</label>
-                        <input type="text" :value="user" disabled class="w-full p-3 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">กลุ่มสาระ / หน่วยงาน <span class="text-red-500">*</span></label>
-                        <select v-model="newJob.department" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                            <option value="" disabled>เลือกหน่วยงาน</option>
-                            <option v-for="dep in settings.departments" :value="dep">{{ dep }}</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">วันที่ต้องการใช้งาน <span class="text-red-500">*</span></label>
-                        <input v-model="newJob.dueDate" type="date" :min="todayDateStr" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">ความสำคัญของงาน</label>
-                        <select v-model="newJob.priority" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                            <option value="เขียว">🟢 ปกติ</option>
-                            <option value="เหลือง">🟡 ปานกลาง</option>
-                            <option value="ส้ม">🟠 สำคัญ</option>
-                            <option value="แดง">🔴 ด่วนมาก</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">รายละเอียดงานที่ต้องการ <span class="text-red-500">*</span></label>
-                    <textarea v-model="newJob.details" rows="4" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="ระบุรายละเอียด เช่น ขนาดภาพ, ข้อความ, วัตถุประสงค์"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">ไฟล์แนบ (รูป, เสียง, เอกสาร - เลือกได้หลายไฟล์)</label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 transition cursor-pointer relative">
-                        <input type="file" multiple @change="handleFileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        <div v-if="newJob.files.length === 0">
-                            <i data-lucide="copy-plus" class="w-10 h-10 mx-auto text-gray-400 mb-2"></i>
-                            <p class="text-sm text-gray-500">คลิกที่นี่เพื่อแนบไฟล์ (ขนาดรวมไม่ควรเกิน 15MB)</p>
-                        </div>
-                        <div v-else class="text-left">
-                            <div v-for="(f, i) in newJob.files" :key="i" class="text-sm text-primary flex items-center gap-2 mt-1 bg-blue-50 p-2 rounded">
-                                <i data-lucide="file-check" class="w-4 h-4"></i> <span class="truncate w-full">{{ f.name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
-                <button @click="showNewJobModal = false" class="px-6 py-2 border rounded-lg text-gray-600 hover:bg-gray-100 transition">ยกเลิก</button>
-                <button @click="submitJob" :disabled="isSubmitting" class="px-6 py-2 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50">
-                    <i v-if="isSubmitting" data-lucide="loader-2" class="animate-spin w-4 h-4"></i>
-                    {{ isSubmitting ? 'กำลังส่งข้อมูล...' : 'บันทึกการสั่งงาน' }}
-                </button>
-            </div>
-        </div>
     </div>
+  </main>
 
-    <!-- 2. Job Details / Admin Action Modal -->
-    <div v-if="selectedJob" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 mt-20 relative">
-            <div class="p-6 border-b flex justify-between items-center" :class="'border-priority-' + selectedJob.Priority">
-                <h2 class="text-xl font-bold flex items-center gap-2">
-                    รายละเอียดงาน <span class="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded">{{ selectedJob.JobID }}</span>
-                </h2>
-                <button @click="selectedJob = null" class="text-gray-500 hover:text-red-500 transition"><i data-lucide="x"></i></button>
-            </div>
-            <div class="p-6 space-y-4">
-                
-                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl">
-                    <div><p class="text-sm text-gray-500">ผู้สั่งงาน</p><p class="font-bold">{{ selectedJob.Name }}</p></div>
-                    <div><p class="text-sm text-gray-500">หน่วยงาน</p><p class="font-medium">{{ selectedJob.Department }}</p></div>
-                    <div><p class="text-sm text-gray-500">วันที่สั่ง</p><p>{{ formatDate(selectedJob.OrderDate) }}</p></div>
-                    <div><p class="text-sm text-gray-500 text-red-500">กำหนดใช้งาน</p><p class="font-bold text-red-600">{{ formatDate(selectedJob.DueDate) }}</p></div>
-                </div>
+  <!-- ================= MODAL: มอบหมายงานใหม่ ================= -->
+  <div id="assignJobModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-gray-800">ฟอร์มส่งมอบงานและลงทะเบียนคิว</h3>
+        <button onclick="closeAssignModal()" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
 
-                <div>
-                    <h3 class="font-bold mb-2">รายละเอียดงาน</h3>
-                    <div class="p-4 border rounded-xl bg-white whitespace-pre-wrap text-sm text-gray-700">{{ selectedJob.Details }}</div>
-                </div>
-
-                <div v-if="selectedJob.FileLink" class="flex items-center justify-between p-3 border rounded-xl bg-blue-50 border-blue-100">
-                    <div class="flex items-center gap-3"><i data-lucide="folder-open" class="text-blue-500"></i><span class="text-sm font-medium text-blue-800">โฟลเดอร์ไฟล์แนบงาน</span></div>
-                    <a :href="selectedJob.FileLink" target="_blank" class="px-4 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition">เปิดดูใน Drive</a>
-                </div>
-
-                <div v-if="selectedJob.Deliverable && !updateMode" class="mt-4 border-t pt-4">
-                    <h3 class="font-bold mb-2 text-green-600 flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i> ข้อความส่งงาน / ลิงก์ผลงาน</h3>
-                    <div class="p-4 bg-green-50 border border-green-200 rounded-xl whitespace-pre-wrap text-sm">{{ selectedJob.Deliverable }}</div>
-                </div>
-
-                <!-- Admin Status Update -->
-                <div v-if="userRole === 'admin' && updateMode" class="mt-6 border-t pt-4 bg-gray-50 -mx-6 px-6 pb-6 rounded-b-2xl">
-                    <h3 class="font-bold mb-3 text-secondary">อัปเดตสถานะงาน (เฉพาะแอดมิน)</h3>
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <label class="cursor-pointer relative flex-1 text-center">
-                            <input type="radio" v-model="newStatus" value="รอดำเนินการ" class="peer sr-only">
-                            <div class="px-2 py-2 rounded-lg border border-gray-200 bg-white peer-checked:bg-yellow-100 peer-checked:border-yellow-500 peer-checked:text-yellow-800 font-medium text-sm transition">รอดำเนินการ</div>
-                        </label>
-                        <label class="cursor-pointer relative flex-1 text-center">
-                            <input type="radio" v-model="newStatus" value="กำลังดำเนินการ" class="peer sr-only">
-                            <div class="px-2 py-2 rounded-lg border border-gray-200 bg-white peer-checked:bg-blue-100 peer-checked:border-blue-500 peer-checked:text-blue-800 font-medium text-sm transition">กำลังดำเนินการ</div>
-                        </label>
-                        <label class="cursor-pointer relative flex-1 text-center">
-                            <input type="radio" v-model="newStatus" value="เสร็จสิ้น" class="peer sr-only">
-                            <div class="px-2 py-2 rounded-lg border border-gray-200 bg-white peer-checked:bg-green-100 peer-checked:border-green-500 peer-checked:text-green-800 font-medium text-sm transition">เสร็จสิ้น</div>
-                        </label>
-                    </div>
-                    
-                    <div v-if="newStatus === 'เสร็จสิ้น'" class="mb-4">
-                        <label class="block text-sm font-medium mb-1 text-green-700">ส่งงาน (แนบลิงก์ Google Drive, Canva หรือข้อความส่งงาน)</label>
-                        <textarea v-model="deliverableText" rows="3" class="w-full p-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white" placeholder="วางลิงก์ผลงาน หรือพิมพ์ข้อความเพื่อส่งไปยัง Line ผู้สั่ง..."></textarea>
-                    </div>
-
-                    <button @click="saveStatus" :disabled="isSubmitting" class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow hover:bg-blue-600 transition flex justify-center items-center gap-2">
-                         <i v-if="isSubmitting" data-lucide="loader-2" class="animate-spin w-4 h-4"></i> บันทึกข้อมูล/อัปเดตสถานะ
-                    </button>
-                </div>
-            </div>
+      <form id="assignJobForm" onsubmit="handleCreateJob(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">ชื่อผู้มอบหมายงาน</label>
+          <input type="text" id="formCreatedBy" placeholder="ระบุชื่อ-นามสกุล ของท่าน" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required>
+          <p class="text-[10px] text-gray-400 mt-1">*ระบบจะเปรียบเทียบชื่อนี้เพื่อเชื่อมต่อไลน์บอทของคุณสำหรับรับแจ้งเตือนเมื่อสถานะเปลี่ยน</p>
         </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">กลุ่มสาระหรือกลุ่มงาน</label>
+          <select id="formDepartment" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required>
+            <!-- Injected by JS -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">ความสำคัญความเร่งด่วน</label>
+          <div class="grid grid-cols-4 gap-2">
+            <label class="border p-2 rounded-xl text-center cursor-pointer hover:bg-red-50 text-red-600 font-bold text-xs">
+              <input type="radio" name="formPriority" value="แดง" required class="mr-1"> แดง ด่วนที่สุด
+            </label>
+            <label class="border p-2 rounded-xl text-center cursor-pointer hover:bg-orange-50 text-orange-600 font-bold text-xs">
+              <input type="radio" name="formPriority" value="ส้ม" class="mr-1"> ส้ม ด่วน
+            </label>
+            <label class="border p-2 rounded-xl text-center cursor-pointer hover:bg-yellow-50 text-yellow-600 font-bold text-xs">
+              <input type="radio" name="formPriority" value="เหลือง" class="mr-1"> เหลือง ปานกลาง
+            </label>
+            <label class="border p-2 rounded-xl text-center cursor-pointer hover:bg-green-50 text-green-600 font-bold text-xs">
+              <input type="radio" name="formPriority" value="เขียว" class="mr-1"> เขียว ทั่วไป
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">หัวข้อ/ชื่องานเทคโนโลยี</label>
+          <input type="text" id="formTitle" placeholder="เช่น ขอเครื่องฉายสไลด์งานวิทยาศาสตร์, ออกแบบแบนเนอร์" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">วันที่สั่ง</label>
+            <input type="text" id="formCreatedDate" readonly class="w-full px-3 py-2 bg-gray-100 border rounded-xl text-sm text-gray-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">วันที่ต้องการใช้งาน</label>
+            <input type="date" id="formDueDate" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">รายละเอียดและขอบข่ายความต้องการ</label>
+          <textarea id="formDetails" rows="3" placeholder="ระบุข้อมูลความต้องการเพื่อให้เจ้าหน้าที่ดำเนินการได้ตรงจุด..." class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" required></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">แนบรูปภาพ ไฟล์ หรือเสียงสำหรับงาน (ส่งได้มากกว่า 1 ไฟล์)</label>
+          <input type="file" id="formFiles" multiple class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100">
+          <p class="text-[10px] text-gray-400 mt-1">*ไฟล์ทั้งหมดจะถูกสร้างโฟลเดอร์เก็บเฉพาะงานนี้ใน Google Drive ปลอดภัยสูงสุด</p>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAssignModal()" class="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">ยกเลิก</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-gradient-pink-blue hover:opacity-90 text-white font-semibold rounded-xl text-sm transition shadow-md">ส่งงานและจองคิว</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <!-- Day Details Modal (Calendar) -->
-    <div v-if="selectedDay" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg">งานประจำวันที่ {{ selectedDay.date }}</h3>
-                <button @click="selectedDay = null" class="text-gray-500 hover:text-red-500"><i data-lucide="x"></i></button>
-            </div>
-            <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                <div v-for="job in selectedDay.jobs" :key="job.JobID" @click="openJobDetails(job); selectedDay = null" class="p-3 bg-gray-50 border rounded-lg cursor-pointer hover:bg-blue-50 transition" :class="'border-priority-' + job.Priority">
-                    <div class="flex justify-between text-xs mb-1">
-                        <span class="font-bold text-primary">{{ job.JobID }}</span>
-                        <span :class="statusColorText(job.Status)">{{ job.Status }}</span>
-                    </div>
-                    <p class="font-medium text-sm truncate">{{ job.Details }}</p>
-                    <p class="text-xs text-gray-500 mt-1">ผู้สั่ง: {{ job.Name }}</p>
-                </div>
-            </div>
+  <!-- ================= MODAL: ล็อกอิน ================= -->
+  <div id="loginModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-md font-bold text-gray-800">เข้าสู่ระบบระบบคิวงาน</h3>
+        <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">บทบาทการเข้าใช้งาน</label>
+          <select id="loginRole" onchange="toggleLoginInputs()" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="user">ผู้มอบหมายงาน (ลงทะเบียนชื่อ)</option>
+            <option value="admin">เจ้าหน้าที่งานเทคโนโลยี (ต้องใส่รหัสผ่าน)</option>
+          </select>
         </div>
+
+        <!-- Inputs for Standard User (By Full Name) -->
+        <div id="userLoginInputs" class="space-y-2">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">ชื่อ-นามสกุลของคุณ</label>
+            <input type="text" id="loginNameInput" placeholder="กรอกชื่อ-นามสกุลจริงของคุณ" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">กลุ่มสาระของคุณ</label>
+            <select id="loginDeptSelect" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+              <!-- Injected by JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Inputs for Admin Tech -->
+        <div id="adminLoginInputs" class="space-y-2 hidden">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">รหัสรักษาความปลอดภัย</label>
+            <input type="password" id="adminPasswordInput" placeholder="ใส่รหัสแอดมิน (เริ่มต้น: admin123)" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400">
+          </div>
+        </div>
+
+        <button onclick="submitLogin()" class="w-full py-2.5 bg-gradient-pink-blue hover:opacity-95 text-white font-bold text-sm rounded-xl transition shadow-md">
+          ยืนยันการเข้าสู่ระบบ
+        </button>
+      </div>
     </div>
+  </div>
 
-    <!-- Toast -->
-    <div v-if="toast.show" class="fixed top-4 right-4 z-[60] bg-white border-l-4 rounded shadow-lg p-4 flex items-center gap-3 transform transition-all duration-300" :class="toast.type === 'success' ? 'border-green-500' : 'border-red-500'">
-        <i v-if="toast.type === 'success'" data-lucide="check-circle" class="text-green-500"></i>
-        <i v-else data-lucide="alert-circle" class="text-red-500"></i>
-        <p class="text-sm font-medium text-gray-800">{{ toast.message }}</p>
+  <!-- FOOTER -->
+  <footer class="bg-white border-t py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-400 space-y-2">
+      <p>ระบบจัดการคิวเทคโนโลยีและสื่อการสอนโรงเรียนยุคดิจิทัล © 2026 สงวนลิขสิทธิ์</p>
+      <p class="font-medium text-blue-400">พัฒนาโดยระบบบูรณาการร่วมกับไลน์แจ้งเตือนอัจฉริยะแบบ Realtime</p>
     </div>
+  </footer>
 
-</div>
-
-<!-- Vue Component Template: Job Card -->
-<template id="job-card-template">
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col h-full hover:shadow-md transition relative" :class="'border-priority-' + job.Priority">
-        <div class="flex justify-between items-start mb-2">
-            <span class="text-xs font-semibold bg-gray-100 px-2 py-1 rounded">{{ job.JobID }}</span>
-            <span class="text-xs font-bold px-2 py-1 rounded-full" :class="statusBgColor(job.Status)">{{ job.Status }}</span>
-        </div>
-        
-        <div class="flex-1">
-            <p class="text-sm font-medium text-primary mb-1">{{ job.Department }}</p>
-            <p class="text-gray-700 text-sm mb-3 line-clamp-2">{{ job.Details }}</p>
-        </div>
-        
-        <div class="border-t pt-3 mt-3 text-xs text-gray-500 flex justify-between items-end">
-            <div>
-                <p class="mb-1"><span class="font-semibold">ผู้สั่ง:</span> {{ job.Name }}</p>
-                <p><span class="font-semibold text-red-500">ใช้งาน:</span> <span class="text-gray-800 font-medium">{{ formatDate(job.DueDate) }}</span></p>
-            </div>
-            <div v-if="job.FollowUpCount > 0" class="text-red-500 font-bold flex flex-col items-end">
-                <i data-lucide="bell-ring" class="w-4 h-4 mb-1 animate-pulse"></i> {{ job.FollowUpCount }} ครั้ง
-            </div>
-        </div>
-        
-        <div class="mt-4 flex gap-2">
-            <button @click="$emit('open', job)" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-medium transition">รายละเอียด</button>
-            <button v-if="userRole === 'user' && job.Status !== 'เสร็จสิ้น' && job.Name === user" @click="$emit('follow', job)" class="flex-1 bg-secondary hover:bg-pink-600 text-white py-2 rounded-lg text-sm font-medium transition shadow-sm">
-                ติดตามงาน
-            </button>
-            <button v-if="userRole === 'admin'" @click="$emit('status', job)" class="flex-1 bg-primary hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-medium transition shadow-sm">
-                จัดการ
-            </button>
-        </div>
-    </div>
-</template>
-
-<script>
-    // URL Backend ล่าสุดของคุณ
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzQOP2e3lgEsCKgNaqElgG2Kx7eB-Fw4egxF9OzVJNjxpDBXxkYkahONosI-9S1cbsrxQ/exec'; 
-
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
-
-    // คอมโพเนนต์การ์ดงาน
-    const JobCard = {
-        template: '#job-card-template',
-        props: ['job', 'userRole', 'user'],
-        setup() {
-            const statusBgColor = (s) => s === 'รอดำเนินการ' ? 'bg-yellow-100 text-yellow-700' : s === 'กำลังดำเนินการ' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
-            const formatDate = (d) => new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-            return { statusBgColor, formatDate };
-        }
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // URL Web app ที่ได้จาก Google Apps Script
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzQOP2e3lgEsCKgNaqElgG2Kx7eB-Fw4egxF9OzVJNjxpDBXxkYkahONosI-9S1cbsrxQ/exec';
+    
+    // สถานะ State ของโปรแกรม
+    let appData = {
+      departments: [],
+      customers: [],
+      jobs: [],
+      stats: { total: 0, completed: 0, pending: 0, overdue: 0 }
     };
+    
+    let currentUser = null; // เก็บออบเจ็กต์ { name, department, role: 'user' | 'admin' }
+    let calendarObj = null;
 
-    createApp({
-        components: { JobCard },
-        setup() {
-            const isLoading = ref(true);
-            const isSubmitting = ref(false);
-            const user = ref(localStorage.getItem('it_q_user') || '');
-            const userRole = ref(localStorage.getItem('it_q_role') || '');
-            const loginMode = ref('user');
-            const loginData = ref({ name: '', password: '' });
-            
-            const currentTab = ref('dashboard');
-            const jobs = ref([]);
-            const settings = ref({ departments: [], adminPass: '' });
-            
-            const searchQuery = ref('');
-            const filterStatus = ref('');
-            
-            const showNewJobModal = ref(false);
-            const newJob = ref({ department: '', dueDate: '', priority: 'เขียว', details: '', files: [] });
-            
-            const selectedJob = ref(null);
-            const updateMode = ref(false);
-            const newStatus = ref('');
-            const deliverableText = ref('');
-            const toast = ref({ show: false, message: '', type: 'success' });
+    window.addEventListener('load', () => {
+      // ตรวจสอบเช็คการล็อกอินค้างไว้ (ตามเงื่อนไข: ล็อกอินค้างไว้จนกว่าจะกดล็อกเอาท์ด้วยตนเอง)
+      const savedUser = localStorage.getItem('school_tech_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateUIForLoggedInUser();
+      }
+      
+      // ดึงข้อมูลครั้งแรกจาก GAS
+      fetchDataFromGAS();
+      
+      // อัปเดตไอคอนทั้งหมดของ Lucide
+      setTimeout(() => { lucide.createIcons(); }, 1000);
+      
+      // ตรวจจับการสืบค้นข้อมูลในตารางงานใหม่เบื้องหลังอย่างต่อเนื่อง (Background checking for new task)
+      setInterval(backgroundNewJobCheck, 15000);
+    });
 
-            // ปฏิทิน State
-            const currentMonth = ref(new Date().getMonth());
-            const currentYear = ref(new Date().getFullYear());
-            const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const selectedDay = ref(null);
+    // แสดงและสับเปลี่ยนแท็บ
+    function switchTab(tabId) {
+      document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
+      const activeTab = document.getElementById(`section-${tabId}`);
+      if (activeTab) activeTab.classList.remove('hidden');
 
-            const todayDateStr = computed(() => {
-                const d = new Date();
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            });
+      // ตกแต่งปุ่ม Nav ที่แอคทีฟ
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        btn.classList.add('text-gray-500');
+      });
+      document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+        btn.classList.remove('text-blue-600');
+        btn.classList.add('text-gray-400');
+      });
 
-            const showToast = (msg, type = 'success') => {
-                toast.value = { show: true, message: msg, type: type };
-                setTimeout(() => toast.value.show = false, 3000);
-            };
+      const currentBtn = document.getElementById(`tab-${tabId}`);
+      if (currentBtn) {
+        currentBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        currentBtn.classList.remove('text-gray-500');
+      }
+      const currentMobBtn = document.getElementById(`m-tab-${tabId}`);
+      if (currentMobBtn) {
+        currentMobBtn.classList.add('text-blue-600');
+        currentMobBtn.classList.remove('text-gray-400');
+      }
 
-            const initIcons = () => nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+      // โหลดปฏิทินหากสลับมาแท็บปฏิทิน
+      if (tabId === 'calendar-view') {
+        setTimeout(initCalendar, 100);
+      }
+    }
 
-            const login = (role) => {
-                if (role === 'user') {
-                    if (!loginData.value.name.trim()) return showToast('กรุณากรอกชื่อ-นามสกุล', 'error');
-                    user.value = loginData.value.name.trim();
-                    userRole.value = 'user';
-                } else {
-                    if (loginData.value.password !== settings.value.adminPass) return showToast('รหัสผ่านไม่ถูกต้อง', 'error');
-                    user.value = 'ผู้ดูแลระบบ (IT)';
-                    userRole.value = 'admin';
-                }
-                localStorage.setItem('it_q_user', user.value);
-                localStorage.setItem('it_q_role', userRole.value);
-                if ("Notification" in window && Notification.permission !== "granted") Notification.requestPermission();
-            };
+    // ฟังก์ชันดึงข้อมูลหลักจาก GAS
+    function fetchDataFromGAS() {
+      showLoading(true);
+      fetch(`${GAS_URL}?action=getInitialData`)
+        .then(res => res.json())
+        .then(response => {
+          if (response.status === 'success') {
+            appData = response.data;
+            populateDepartments();
+            renderDashboard();
+            renderAllJobsTable();
+            populateUpdateJobDropdown();
+            showLoading(false);
+          }
+        })
+        .catch(err => {
+          console.error("Error loading data from sheet:", err);
+          showLoading(false);
+        });
+    }
 
-            const logout = () => {
-                localStorage.removeItem('it_q_user');
-                localStorage.removeItem('it_q_role');
-                user.value = userRole.value = '';
-                loginData.value = {name:'', password:''};
-            };
+    // เช็คคิวงานใหม่ในเบื้องหลัง
+    let previousJobCount = -1;
+    function backgroundNewJobCheck() {
+      fetch(`${GAS_URL}?action=getJobs`)
+        .then(res => res.json())
+        .then(response => {
+          if (response.status === 'success') {
+            const currentJobs = response.data.jobs;
+            if (previousJobCount !== -1 && currentJobs.length > previousJobCount) {
+              // แจ้งเตือน! มีคิวงานใหม่เพิ่มเข้ามา
+              document.getElementById('notificationSound').play().catch(()=>{});
+              document.getElementById('newJobNotificationAlert').classList.remove('hidden');
+              // สั่นกระดิ่งและอัปเดตข้อมูลใน UI ใหม่
+              appData.jobs = currentJobs;
+              appData.stats = response.data.stats;
+              renderDashboard();
+              renderAllJobsTable();
+            }
+            previousJobCount = currentJobs.length;
+          }
+        });
+    }
 
-            const fetchData = async () => {
-                try {
-                    const [setRes, jobRes] = await Promise.all([
-                        fetch(`${GAS_WEB_APP_URL}?action=getSettings`).then(r => r.json()),
-                        fetch(`${GAS_WEB_APP_URL}?action=getJobs`).then(r => r.json())
-                    ]);
-                    
-                    if(setRes.status === 'success') {
-                        settings.value.departments = (setRes.data.Departments || '').split(',').map(d => d.trim());
-                        settings.value.adminPass = setRes.data.AdminPassword || 'admin1234';
-                    }
-                    if(jobRes.status === 'success') {
-                        jobs.value = jobRes.data;
-                    }
-                } catch (error) {
-                    showToast('การเชื่อมต่อล้มเหลว', 'error');
-                } finally {
-                    isLoading.value = false;
-                    initIcons();
-                }
-            };
+    function showLoading(isLoading) {
+      const skeleton = document.getElementById('skeletonContainer');
+      const realContent = document.getElementById('realContent');
+      if (isLoading) {
+        skeleton.classList.remove('hidden');
+        realContent.classList.add('hidden');
+      } else {
+        skeleton.classList.add('hidden');
+        realContent.classList.remove('hidden');
+      }
+    }
 
-            const handleFileUpload = (e) => {
-                const files = Array.from(e.target.files);
-                if (files.length === 0) return;
-                
-                let totalSize = 0;
-                newJob.value.files = [];
-                
-                files.forEach(file => {
-                    totalSize += file.size;
-                    if (totalSize > 15 * 1024 * 1024) return showToast('ขนาดไฟล์รวมต้องไม่เกิน 15MB', 'error');
-                    
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        newJob.value.files.push({ name: file.name, type: file.type, data: ev.target.result });
-                    };
-                    reader.readAsDataURL(file);
-                });
-            };
+    // นำเข้าข้อมูลฝ่าย/กลุ่มสาระ ลงฟอร์มและตัวกรอง
+    function populateDepartments() {
+      const selectForm = document.getElementById('formDepartment');
+      const selectLogin = document.getElementById('loginDeptSelect');
+      
+      selectForm.innerHTML = '';
+      selectLogin.innerHTML = '';
+      
+      appData.departments.forEach(dept => {
+        const opt = `<option value="${dept}">${dept}</option>`;
+        selectForm.innerHTML += opt;
+        selectLogin.innerHTML += opt;
+      });
+    }
 
-            const submitJob = async () => {
-                if (!newJob.value.department || !newJob.value.dueDate || !newJob.value.details) return showToast('กรุณากรอกข้อมูล * ให้ครบถ้วน', 'error');
+    // วาดหน้าแรก Dashboard สรุปยอด และรายการงานแบบการ์ด
+    function renderDashboard() {
+      // อัปเดตตัวเลข Dashboard Stat
+      document.getElementById('stat-total').innerText = appData.stats.total;
+      document.getElementById('stat-completed').innerText = appData.stats.completed;
+      document.getElementById('stat-pending').innerText = appData.stats.pending;
+      document.getElementById('stat-overdue').innerText = appData.stats.overdue;
 
-                isSubmitting.value = true;
-                const payload = { name: user.value, ...newJob.value };
+      const container = document.getElementById('jobCardsContainer');
+      container.innerHTML = '';
 
-                try {
-                    const res = await fetch(`${GAS_WEB_APP_URL}?action=createJob`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ action: 'createJob', payload: JSON.stringify(payload) })
-                    });
-                    const json = await res.json();
-                    if (json.status === 'success') {
-                        showToast('สั่งงานสำเร็จ รหัส: ' + json.jobId);
-                        showNewJobModal.value = false;
-                        newJob.value = { department: '', dueDate: '', priority: 'เขียว', details: '', files: [] };
-                        fetchData();
-                    }
-                } catch (e) {
-                    showToast('เกิดข้อผิดพลาดในการส่งข้อมูล', 'error');
-                } finally {
-                    isSubmitting.value = false;
-                }
-            };
+      if (appData.jobs.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 text-gray-400">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
+            <p>ยังไม่มีคิวงานในระบบขณะนี้</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
 
-            const followUpJob = async (job) => {
-                if(!confirm(`ต้องการติดตามงานรหัส ${job.JobID} ใช่หรือไม่?`)) return;
-                try {
-                    const res = await fetch(`${GAS_WEB_APP_URL}?action=followUp`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ action: 'followUp', payload: JSON.stringify({ jobId: job.JobID }) })
-                    });
-                    if((await res.json()).status === 'success') { showToast('ติดตามงานเรียบร้อย'); fetchData(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
-            };
+      // เรียงลำดับงานตามข้อตกลง:
+      // 1. งานที่ถูกกติดตามกระตุ้นเด้ง (IsFollowed == true)
+      // 2. งานที่ใกล้เดดไลน์วันใช้ใน 5 วัน (DueDate - Today <= 5 days)
+      // 3. เรียงตามสีความสำคัญ แดง > ส้ม > เหลือง > เขียว
+      const processedJobs = appData.jobs.map(job => {
+        const today = new Date();
+        const due = new Date(job.DueDate);
+        const timeDiff = due.getTime() - today.getTime();
+        const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        let priorityWeight = 1;
+        if (job.Priority === "แดง") priorityWeight = 4;
+        else if (job.Priority === "ส้ม") priorityWeight = 3;
+        else if (job.Priority === "เหลือง") priorityWeight = 2;
+        
+        let isCloseToDue = (daysLeft <= 5 && daysLeft >= 0 && job.Status !== "ดำเนินการแล้ว") ? true : false;
+        
+        return {
+          ...job,
+          daysLeft: daysLeft,
+          isCloseToDue: isCloseToDue,
+          priorityWeight: priorityWeight
+        };
+      });
 
-            const saveStatus = async () => {
-                isSubmitting.value = true;
-                try {
-                    const payload = { jobId: selectedJob.value.JobID, status: newStatus.value, deliverable: deliverableText.value };
-                    const res = await fetch(`${GAS_WEB_APP_URL}?action=updateJobStatus`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ action: 'updateJobStatus', payload: JSON.stringify(payload) })
-                    });
-                    if ((await res.json()).status === 'success') {
-                        showToast('อัปเดตสถานะสำเร็จ');
-                        selectedJob.value = null;
-                        fetchData();
-                    }
-                } catch (error) { showToast('เกิดข้อผิดพลาด', 'error'); } 
-                finally { isSubmitting.value = false; }
-            };
+      // ดำเนินการจัดเรียง (Sorting)
+      processedJobs.sort((a, b) => {
+        // เงื่อนไข: กดติดตามถูกดันสูงสุด
+        if (a.IsFollowed === 'true' && b.IsFollowed !== 'true') return -1;
+        if (a.IsFollowed !== 'true' && b.IsFollowed === 'true') return 1;
 
-            const openJobDetails = (job) => { selectedJob.value = job; updateMode.value = false; initIcons(); };
-            const openStatusUpdate = (job) => { selectedJob.value = job; newStatus.value = job.Status; deliverableText.value = job.Deliverable || ''; updateMode.value = true; initIcons(); };
-            const statusColorText = (s) => s === 'รอดำเนินการ' ? 'text-yellow-600' : s === 'กำลังดำเนินการ' ? 'text-blue-600' : 'text-green-600';
-            const priorityBg = (p) => p === 'แดง' ? 'bg-red-500' : p === 'ส้ม' ? 'bg-orange-500' : p === 'เหลือง' ? 'bg-yellow-500' : 'bg-green-500';
-            const formatDate = (d) => d ? new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+        // เงื่อนไข: ใกล้ 5 วัน ถูกดันมาบนสุด
+        if (a.isCloseToDue && !b.isCloseToDue) return -1;
+        if (!a.isCloseToDue && b.isCloseToDue) return 1;
 
-            // Calendar Logic
-            const changeMonth = (diff) => {
-                let m = currentMonth.value + diff;
-                if (m > 11) { m = 0; currentYear.value++; }
-                else if (m < 0) { m = 11; currentYear.value--; }
-                currentMonth.value = m;
-                initIcons();
-            };
-            const isToday = (dateStr) => dateStr === todayDateStr.value;
-            const showDayJobs = (day) => { selectedDay.value = day; initIcons(); };
+        // เงื่อนไข: เรียงตามความสำคัญ
+        return b.priorityWeight - a.priorityWeight;
+      });
 
-            const calendarDays = computed(() => {
-                const year = currentYear.value;
-                const month = currentMonth.value;
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                
-                const days = [];
-                for (let i = 0; i < firstDay; i++) days.push({ empty: true });
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                    // Match local date string to DueDate from Google Sheets
-                    const jobsOnDay = jobs.value.filter(j => {
-                        if (!j.DueDate) return false;
-                        const jd = new Date(j.DueDate);
-                        const jDateStr = `${jd.getFullYear()}-${String(jd.getMonth() + 1).padStart(2, '0')}-${String(jd.getDate()).padStart(2, '0')}`;
-                        return jDateStr === dateStr && j.Status !== 'ยกเลิก';
-                    });
-                    days.push({ empty: false, date: i, fullDate: dateStr, jobs: jobsOnDay });
-                }
-                return days;
-            });
+      // นำผลลัพธ์ที่จัดเรียงเรียบร้อยมาสร้างการ์ดคิว
+      processedJobs.forEach(job => {
+        let cardClass = "card-urgent-green";
+        let priorityBadge = "bg-green-100 text-green-700";
+        if (job.Priority === "แดง") { cardClass = "card-urgent-red"; priorityBadge = "bg-red-100 text-red-700"; }
+        else if (job.Priority === "ส้ม") { cardClass = "card-urgent-orange"; priorityBadge = "bg-orange-100 text-orange-700"; }
+        else if (job.Priority === "เหลือง") { cardClass = "card-urgent-yellow"; priorityBadge = "bg-yellow-100 text-yellow-700"; }
 
-            // Process Jobs
-            const processedJobs = computed(() => {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                return jobs.value.map(j => {
-                    const diffDays = j.DueDate ? Math.ceil((new Date(j.DueDate) - today) / (1000 * 60 * 60 * 24)) : 99;
-                    const isUrgent = diffDays <= 5 || j.FollowUpCount > 0 || j.Priority === 'แดง';
-                    return { ...j, diffDays, isUrgent };
-                });
-            });
-
-            const inProgressJobs = computed(() => jobs.value.filter(j => j.Status === 'กำลังดำเนินการ'));
-            const stats = computed(() => {
-                const all = jobs.value;
-                return {
-                    total: all.length,
-                    pending: all.filter(j => j.Status === 'รอดำเนินการ').length,
-                    completed: all.filter(j => j.Status === 'เสร็จสิ้น').length,
-                    overdue: processedJobs.value.filter(j => j.isUrgent && j.Status !== 'เสร็จสิ้น').length
-                };
-            });
-            const urgentJobs = computed(() => processedJobs.value.filter(j => j.isUrgent && j.Status !== 'เสร็จสิ้น').sort((a, b) => b.FollowUpCount - a.FollowUpCount || new Date(a.DueDate) - new Date(b.DueDate)));
-
-            const filteredJobs = computed(() => {
-                let list = processedJobs.value;
-                if (currentTab.value === 'completed') list = list.filter(j => j.Status === 'เสร็จสิ้น');
-                else if (currentTab.value === 'myjobs' && userRole.value === 'user') list = list.filter(j => j.Name === user.value && j.Status !== 'เสร็จสิ้น');
-                else if (currentTab.value === 'all') list = list.filter(j => j.Status !== 'เสร็จสิ้น'); // ซ่อนงานเสร็จแล้วในหน้ารวม
-                
-                if (filterStatus.value) list = list.filter(j => j.Status === filterStatus.value);
-                if (searchQuery.value) {
-                    const q = searchQuery.value.toLowerCase();
-                    list = list.filter(j => j.JobID.toLowerCase().includes(q) || j.Name.toLowerCase().includes(q) || j.Details.toLowerCase().includes(q));
-                }
-
-                // เรียง: งานที่ถูกกดติดตามขึ้นก่อน -> เรียงตามวันนัดส่ง
-                return list.sort((a, b) => {
-                    if (b.FollowUpCount !== a.FollowUpCount) return b.FollowUpCount - a.FollowUpCount;
-                    return new Date(a.DueDate) - new Date(b.DueDate);
-                });
-            });
-
-            onMounted(() => {
-                fetchData();
-                setInterval(() => {
-                    if (user.value) {
-                        const oldTotal = jobs.value.length;
-                        fetch(`${GAS_WEB_APP_URL}?action=getJobs`).then(r => r.json()).then(json => {
-                            if(json.status === 'success') {
-                                if(json.data.length > oldTotal) {
-                                    showToast('มีงานใหม่เข้ามาในระบบ!', 'success');
-                                    if (Notification.permission === "granted") new Notification("ระบบคิวงาน IT", { body: "มีงานใหม่เข้ามาในระบบ" });
-                                }
-                                jobs.value = json.data;
-                            }
-                        });
-                    }
-                }, 60000);
-            });
-
-            return {
-                isLoading, isSubmitting, user, userRole, loginMode, loginData, login, logout,
-                currentTab, stats, urgentJobs, filteredJobs, inProgressJobs, searchQuery, filterStatus,
-                showNewJobModal, newJob, settings, handleFileUpload, submitJob,
-                selectedJob, updateMode, newStatus, deliverableText, openJobDetails, openStatusUpdate, saveStatus, followUpJob,
-                formatDate, statusColorText, priorityBg, toast, todayDateStr,
-                currentMonth, currentYear, monthNames, calendarDays, changeMonth, isToday, showDayJobs, selectedDay
-            };
+        const dateFormatted = new Date(job.DueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        let followBtnHtml = "";
+        // หากผู้ล็อกอินตรงกับชื่อผู้สร้างงานให้สามารถกดติดตามกระตุ้นความด่วนได้
+        if (currentUser && currentUser.name === job.CreatedBy && job.IsFollowed !== 'true' && job.Status !== 'ดำเนินการแล้ว') {
+          followBtnHtml = `
+            <button onclick="handleTriggerFollow('${job.JobID}')" class="flex items-center gap-1 text-xs bg-pink-100 text-pink-700 px-3 py-1 rounded-lg hover:bg-pink-200 transition">
+              <i data-lucide="bell" class="w-3.5 h-3.5"></i> ติดตามงานด่วน
+            </button>
+          `;
         }
-    }).mount('#app');
-</script>
+
+        let followStatusLabel = "";
+        if (job.IsFollowed === 'true') {
+          followStatusLabel = `<span class="bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5 animate-pulse"><i data-lucide="alert-circle" class="w-3 h-3"></i> ได้รับแจ้งเตือนเร่งด่วน</span>`;
+        }
+
+        // หากผู้รับผิดชอบเป็น Admin แถบจัดการงานจะปรากฏ
+        let adminActionHtml = "";
+        if (currentUser && currentUser.role === 'admin' && job.Status !== 'ดำเนินการแล้ว') {
+          adminActionHtml = `
+            <div class="border-t pt-3 mt-3 flex justify-between items-center">
+              <span class="text-xs text-blue-600 font-bold">แผงจัดการคิว:</span>
+              <div class="flex gap-1">
+                <button onclick="changeJobStatusDirectly('${job.JobID}', 'กำลังดำเนินการ')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">เริ่มทำ</button>
+                <button onclick="changeJobStatusDirectly('${job.JobID}', 'ดำเนินการแล้ว')" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200">เสร็จสิ้น</button>
+              </div>
+            </div>
+          `;
+        }
+
+        const driveFolderLinkHtml = job.FileFolderURL ? 
+          `<a href="${job.FileFolderURL}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-2 font-medium">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> เปิดแฟ้มงาน Google Drive
+           </a>` : '';
+
+        container.innerHTML += `
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 ${cardClass} transition hover:shadow-md flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex justify-between items-start">
+                <span class="text-[10px] text-gray-400 font-bold tracking-wider">${job.JobID}</span>
+                <div class="flex gap-1 flex-wrap">
+                  ${followStatusLabel}
+                  <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${priorityBadge}">เร่งด่วน: ${job.Priority}</span>
+                </div>
+              </div>
+              
+              <div>
+                <h4 class="font-bold text-gray-800 text-md leading-snug">${job.Title}</h4>
+                <p class="text-xs text-gray-500 mt-1 line-clamp-3">${job.Details}</p>
+              </div>
+
+              <div class="bg-gray-50 p-3 rounded-xl space-y-1.5 text-xs text-gray-600">
+                <div class="flex justify-between">
+                  <span class="font-bold">กำหนดใช้งาน:</span>
+                  <span class="text-rose-500 font-bold">${dateFormatted}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>ผู้มอบหมาย:</span>
+                  <span class="font-medium">${job.CreatedBy}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>กลุ่มงาน:</span>
+                  <span class="text-gray-500 truncate max-w-[150px]">${job.Department}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>ผู้ปฏิบัติงาน:</span>
+                  <span class="text-blue-600 font-bold">${job.Assignee || 'ยังไม่มีผู้รับ'}</span>
+                </div>
+                ${job.GraphicDetail ? `
+                  <div class="border-t pt-1.5 mt-1">
+                    <span class="font-bold text-emerald-600">สเปกงาน/กราฟิก:</span>
+                    <p class="italic text-[11px] text-emerald-800">${job.GraphicDetail}</p>
+                  </div>
+                ` : ''}
+              </div>
+              
+              ${driveFolderLinkHtml}
+            </div>
+
+            <div class="mt-4 pt-3 border-t flex justify-between items-center">
+              <span class="text-xs font-bold px-2 py-1 rounded bg-yellow-50 text-yellow-700 border border-yellow-200">${job.Status}</span>
+              ${followBtnHtml}
+            </div>
+            
+            ${adminActionHtml}
+          </div>
+        `;
+      });
+
+      lucide.createIcons();
+    }
+
+    // เรนเดอร์ตารางประวัติตารางงานหน้า "คิวงานทั้งหมด"
+    function renderAllJobsTable() {
+      const tbody = document.getElementById('allJobsTableBody');
+      tbody.innerHTML = '';
+
+      appData.jobs.forEach(job => {
+        const dateFormatted = new Date(job.DueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        let priorityColor = "text-green-600";
+        if (job.Priority === "แดง") priorityColor = "text-red-600 font-bold";
+        else if (job.Priority === "ส้ม") priorityColor = "text-orange-500 font-bold";
+        
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-500">${job.JobID}</td>
+            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-800">${job.Title}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs">
+              <p class="font-semibold text-gray-700">${job.CreatedBy}</p>
+              <p class="text-[10px] text-gray-400">${job.Department}</p>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${dateFormatted}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs ${priorityColor}">${job.Priority}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">${job.Status}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              ${job.FileFolderURL ? `<a href="${job.FileFolderURL}" target="_blank" class="text-blue-600 hover:text-blue-900 font-bold flex items-center gap-0.5"><i data-lucide="folder-open" class="w-4 h-4"></i> ไฟล์แนบ</a>` : '-'}
+            </td>
+          </tr>
+        `;
+      });
+      lucide.createIcons();
+    }
+
+    // กรองประวัติตามตัวเลือก
+    function filterAllJobs() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+      const status = document.getElementById('filterStatus').value;
+      
+      const rows = document.querySelectorAll('#allJobsTableBody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const rowStatus = row.querySelector('span').innerText;
+        
+        const matchesKeyword = text.includes(keyword);
+        const matchesStatus = (status === 'ทั้งหมด' || rowStatus === status);
+        
+        if (matchesKeyword && matchesStatus) {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+    }
+
+    // แสดงประวัติงานในรูปแบบปฏิทิน Calendar
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      if (calendarObj) {
+        calendarObj.render();
+        return;
+      }
+
+      const events = appData.jobs.map(job => {
+        let color = '#10b981'; // เขียว
+        if (job.Priority === 'แดง') color = '#ef4444';
+        else if (job.Priority === 'ส้ม') color = '#f97316';
+        else if (job.Priority === 'เหลือง') color = '#f59e0b';
+
+        return {
+          title: `[${job.Status}] ${job.Title}`,
+          start: job.DueDate.split('T')[0], // ดึงเฉพาะส่วนของวันที่ YYYY-MM-DD
+          backgroundColor: color,
+          borderColor: color,
+          extendedProps: { ...job }
+        };
+      });
+
+      calendarObj = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'th',
+        events: events,
+        eventClick: function(info) {
+          const job = info.event.extendedProps;
+          alert(`คิวงาน: ${job.Title}\nผู้สั่ง: ${job.CreatedBy}\nรายละเอียด: ${job.Details}\nกำหนดส่ง: ${job.DueDate}`);
+        }
+      });
+      calendarObj.render();
+    }
+
+    // จัดการเปลี่ยนสถานะผู้ปฏิบัติงานหรือส่งงานกราฟิก
+    function populateUpdateJobDropdown() {
+      const select = document.getElementById('updateJobSelect');
+      select.innerHTML = '<option value="">-- เลือกรหัสงานของคุณ --</option>';
+      
+      appData.jobs.forEach(job => {
+        if (job.Status !== "ดำเนินการแล้ว") {
+          select.innerHTML += `<option value="${job.JobID}">${job.JobID} - ${job.Title}</option>`;
+        }
+      });
+    }
+
+    // เปิด / ปิด โมดอลมอบหมายงาน
+    function openAssignModal() {
+      document.getElementById('formCreatedDate').value = new Date().toLocaleDateString('th-TH');
+      
+      // หากผู้ใช้เคยล็อกอินเป็นบุคลากรโรงเรียนอยู่แล้ว ให้เอาชื่อและกลุ่มงานมาใส่ให้อัตโนมัติ
+      if (currentUser && currentUser.role === 'user') {
+        document.getElementById('formCreatedBy').value = currentUser.name;
+        document.getElementById('formDepartment').value = currentUser.department;
+      }
+      
+      document.getElementById('assignJobModal').classList.remove('hidden');
+    }
+
+    function closeAssignModal() {
+      document.getElementById('assignJobModal').classList.add('hidden');
+    }
+
+    // สร้างคิวงานใหม่และส่งไปยัง GAS
+    function handleCreateJob(e) {
+      e.preventDefault();
+      
+      const createdBy = document.getElementById('formCreatedBy').value;
+      const dept = document.getElementById('formDepartment').value;
+      const title = document.getElementById('formTitle').value;
+      const dueDate = document.getElementById('formDueDate').value;
+      const details = document.getElementById('formDetails').value;
+      const priority = document.querySelector('input[name="formPriority"]:checked').value;
+      
+      const fileInput = document.getElementById('formFiles');
+      const filesCount = fileInput.files.length;
+      
+      // ฟังก์ชันสำหรับบันทึกงานโดยตรง
+      const saveJobData = (filesArray = []) => {
+        showLoading(true);
+        closeAssignModal();
+        
+        const payload = {
+          action: 'createJob',
+          title: title,
+          createdBy: createdBy,
+          department: dept,
+          dueDate: dueDate,
+          details: details,
+          priority: priority,
+          files: filesArray
+        };
+
+        fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === 'success') {
+            // ทำการลงทะเบียนผู้ใช้งานเป็นประวัติในระบบอัตโนมัติ (และเก็บสถานะล็อกอินค้างไว้)
+            const userData = { name: createdBy, department: dept, role: 'user' };
+            localStorage.setItem('school_tech_user', JSON.stringify(userData));
+            currentUser = userData;
+            updateUIForLoggedInUser();
+            
+            // รีเฟรชข้อมูลใหม่จากชีต
+            fetchDataFromGAS();
+            alert(`✅ มอบหมายงานสำเร็จและเข้าระบบเรียบร้อย!\nรหัสคิวงาน: ${res.jobId}\n(กรุณาให้บุคลากรแชทบอกชื่อใน Line Bot ของคุณครูสาธิตเพื่อรับแจ้งเตือนหากสถานะคิวเสร็จสมบูรณ์ค่ะ)`);
+          } else {
+            alert('เกิดข้อผิดพลาดในการสร้างคิวงาน: ' + res.message);
+            showLoading(false);
+          }
+        });
+      };
+
+      // กรณีมีการแนบไฟล์ ดำเนินการแปลงเป็น Base64 ก่อนส่งไปอัปโหลดเข้า Google Drive รายงานตัว
+      if (filesCount > 0) {
+        const filesPromises = Array.from(fileInput.files).map(file => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+              const base64String = evt.target.result.split(',')[1];
+              resolve({
+                name: file.name,
+                mimeType: file.type,
+                base64: base64String
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+
+        Promise.all(filesPromises).then(filesArray => {
+          saveJobData(filesArray);
+        });
+      } else {
+        saveJobData();
+      }
+    }
+
+    // ผู้ใช้กดปุ่ม "ติดตามงาน" (กระตุ้นด่วนที่สุด)
+    function handleTriggerFollow(jobId) {
+      if (confirm('คุณต้องการกระตุ้นแจ้งเตือนติดตามความด่วนของงานชิ้นนี้ไปยังเจ้าหน้าที่ใช่หรือไม่?')) {
+        showLoading(true);
+        fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'followJob', jobId: jobId })
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === 'success') {
+            fetchDataFromGAS();
+            alert('🔔 กระตุ้นเตือนความเร่งด่วนส่งแจ้งเตือน Flex Message ไปยังคุณครูสาธิต เรียบร้อยค่ะ');
+          } else {
+            showLoading(false);
+            alert('ผิดพลาด: ' + res.message);
+          }
+        });
+      }
+    }
+
+    // จัดการปุ่มลงทะเบียนสั่งงาน และล็อกอินค้างไว้
+    function openLoginModal() {
+      populateDepartments();
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.add('hidden');
+    }
+
+    function toggleLoginInputs() {
+      const role = document.getElementById('loginRole').value;
+      if (role === 'admin') {
+        document.getElementById('adminLoginInputs').classList.remove('hidden');
+        document.getElementById('userLoginInputs').classList.add('hidden');
+      } else {
+        document.getElementById('adminLoginInputs').classList.add('hidden');
+        document.getElementById('userLoginInputs').classList.remove('hidden');
+      }
+    }
+
+    function submitLogin() {
+      const role = document.getElementById('loginRole').value;
+      
+      if (role === 'admin') {
+        const pwd = document.getElementById('adminPasswordInput').value;
+        if (pwd === 'admin123') { // รหัสผ่านดีฟอลต์ตามโจทย์
+          currentUser = { name: 'ผู้ดูแลระบบเทคโนโลยี', department: 'งานคอมพิวเตอร์และสื่อสาร', role: 'admin' };
+          localStorage.setItem('school_tech_user', JSON.stringify(currentUser));
+          updateUIForLoggedInUser();
+          closeLoginModal();
+          alert('🔑 ยินดีต้อนรับเจ้าหน้าที่เทคโนโลยี เข้าสู่แผงควบคุมหลักค่ะ!');
+        } else {
+          alert('❌ รหัสผ่านป้องกันเจ้าหน้าที่ไม่ถูกต้อง');
+        }
+      } else {
+        // ล็อกอินผู้มอบหมายงาน
+        const name = document.getElementById('loginNameInput').value.trim();
+        const dept = document.getElementById('loginDeptSelect').value;
+        if (!name) {
+          alert('กรุณากรอกชื่อจริงของท่าน');
+          return;
+        }
+
+        // นำส่งไปตรวจสอบบันทึก Customer ใน GAS และอัปเดต Session
+        showLoading(true);
+        fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'registerUser', name: name, department: dept })
+        })
+        .then(res => res.json())
+        .then(res => {
+          showLoading(false);
+          if (res.status === 'success') {
+            currentUser = { name: name, department: dept, role: 'user' };
+            localStorage.setItem('school_tech_user', JSON.stringify(currentUser));
+            updateUIForLoggedInUser();
+            closeLoginModal();
+            alert('🎉 ยินดีต้อนรับคุณ ' + name + ' เข้าสู่ระบบคิวงานโรงเรียนค่ะ');
+          }
+        });
+      }
+    }
+
+    // จัดการเปลี่ยนแปลง Layout หน้าจอเมื่อล็อกอินเสร็จสิ้น
+    function updateUIForLoggedInUser() {
+      document.getElementById('authBtn').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+      document.getElementById('userProfileDisplay').classList.remove('hidden');
+      document.getElementById('currentUserName').innerText = currentUser.name;
+      
+      const badge = document.getElementById('roleBadge');
+      if (currentUser.role === 'admin') {
+        badge.innerText = "เจ้าหน้าที่เทคโนโลยี (ADMIN)";
+        badge.className = "px-3 py-1 text-xs rounded-full font-bold bg-purple-100 text-purple-700";
+        document.getElementById('unauthorizedAssigneeNotice').classList.add('hidden');
+        document.getElementById('assigneeWorkspace').classList.remove('hidden');
+      } else {
+        badge.innerText = "ผู้มอบหมายงาน / ครูผู้สั่งคิว";
+        badge.className = "px-3 py-1 text-xs rounded-full font-bold bg-pink-100 text-pink-700";
+        document.getElementById('unauthorizedAssigneeNotice').classList.remove('hidden');
+        document.getElementById('assigneeWorkspace').classList.add('hidden');
+      }
+    }
+
+    // ฟังก์ชันออกระบบ (ผู้ใช้เป็นคนสั่งกดด้วยตนเองเท่านั้นตามข้อกำหนด)
+    function handleLogout() {
+      if (confirm('คุณต้องการออกจากระบบคิวงานใช่หรือไม่?')) {
+        localStorage.removeItem('school_tech_user');
+        currentUser = null;
+        document.getElementById('authBtn').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+        document.getElementById('userProfileDisplay').classList.add('hidden');
+        
+        document.getElementById('unauthorizedAssigneeNotice').classList.remove('hidden');
+        document.getElementById('assigneeWorkspace').classList.add('hidden');
+        
+        // ล้างฟิลด์ในแบบฟอร์มส่งงาน
+        document.getElementById('formCreatedBy').value = '';
+        
+        alert('ออกจากระบบเรียบร้อยแล้วค่ะ');
+      }
+    }
+
+    // เจ้าหน้าที่เทคโนโลยี อัปเดตข้อมูลของงานจาก Workspace
+    function handleUpdateJobDetails(e) {
+      e.preventDefault();
+      const jobId = document.getElementById('updateJobSelect').value;
+      const detail = document.getElementById('updateJobDetailInput').value;
+      const status = document.getElementById('updateJobStatusSelect').value;
+      
+      if (!jobId) {
+        alert('กรุณาเลือกรหัสคิวงานที่ต้องการส่งมอบ');
+        return;
+      }
+
+      showLoading(true);
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'updateJobStatus',
+          jobId: jobId,
+          status: status,
+          assignee: currentUser.name,
+          graphicDetail: detail
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === 'success') {
+          // รีเฟรชหน้าจอทั้งหมด
+          fetchDataFromGAS();
+          alert('🎉 อัปเดตและแจ้งเตือน Line FlexMessage ไปยังผู้มอบหมายงานสำเร็จ!');
+          document.getElementById('submitResultForm').reset();
+        } else {
+          showLoading(false);
+          alert('ผิดพลาด: ' + res.message);
+        }
+      });
+    }
+
+    // คิวฟังก์ชันด่วนสำหรับแผงคอนโทรลการ์ด
+    function changeJobStatusDirectly(jobId, targetStatus) {
+      showLoading(true);
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'updateJobStatus',
+          jobId: jobId,
+          status: targetStatus,
+          assignee: currentUser.name
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === 'success') {
+          fetchDataFromGAS();
+          alert('อัปเดตสถานะสำเร็จ!');
+        } else {
+          showLoading(false);
+          alert('ผิดพลาด: ' + res.message);
+        }
+      });
+    }
+  </script>
 </body>
 </html>
