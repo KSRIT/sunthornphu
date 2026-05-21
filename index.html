@@ -3,1358 +3,1096 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบคิวงานเทคโนโลยีโรงเรียน (Tech Queue System)</title>
+  <title>ระบบรับหนังสือ - ปากแพรกวิทยาคม</title>
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Font Kanit -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Custom Styling -->
   <style>
-    body {
-      font-family: 'Kanit', sans-serif;
-      background: linear-gradient(135deg, #f0f9ff 0%, #fce7f3 100%);
+    :root {
+      /* Theme: Blue - Pink - White */
+      --primary: #3b82f6;       /* Modern Blue */
+      --primary-soft: #eff6ff;
+      --secondary: #ec4899;     /* Modern Pink */
+      --secondary-soft: #fdf2f8; 
+      --bg-light: #f1f5f9;      /* Slate 100 */
+      --text-dark: #334155;     /* Slate 700 */
+      --text-muted: #94a3b8;    /* Slate 400 */
+      --card-radius: 20px;
+      --input-radius: 50px;     
+      --shadow-soft: 0 10px 30px -10px rgba(0,0,0,0.08);
     }
-    .text-glow {
-      text-shadow: 0 0 10px rgba(236, 72, 153, 0.2);
+
+    /* Custom Container */
+    @media (min-width: 1550px) { .container { max-width: 1500px !important; } }
+    
+    body { font-family: 'Kanit', sans-serif; background-color: var(--bg-light); padding-bottom: 80px; color: var(--text-dark); overflow-x: hidden; }
+
+    .cursor-pointer { cursor: pointer; }
+    .hover-shadow:hover { box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); transition: all 0.2s; }
+
+    /* Modern Loader (ปรับให้แสดงแค่วงเดียว สีชัดเจน) */
+    .modern-loader {
+        width: 40px; 
+        height: 40px;
+        border: 3px solid rgba(236, 72, 153, 0.1); /* พื้นหลังจางๆ */
+        border-top-color: var(--primary); /* สีหมุนหลัก */
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 0.8s linear infinite;
     }
-    .glass-morphism {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+    @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* ข้อความ Loading ปรับให้เล็กลง สวยงาม และอยู่ตรงกลาง */
+    .loadingoverlay_text { 
+        font-family: 'Kanit', sans-serif !important; 
+        font-weight: 500 !important; 
+        font-size: 1rem !important; 
+        color: var(--text-dark) !important; 
+        margin-top: 15px !important; 
+        letter-spacing: 0.3px;
+    }
+
+    /* Login/Register Card (Gatekeeper) */
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 10% 20%, rgb(255, 252, 253) 0%, rgb(240, 247, 255) 90%);
+        padding: 1rem;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 9999;
+    }
+    .auth-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        width: 100%;
+        max-width: 380px; 
+        border-radius: 35px;
+        padding: 2.5rem 1.5rem;
+        box-shadow: 0 20px 50px rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(255,255,255,0.8);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .auth-logo { width: 300px; height: auto; margin-bottom: 10px; }
+    .auth-title { 
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700; font-size: 1.4rem; margin-bottom: 2px;
+    }
+
+    /* PIN PAD Styles */
+    .pin-display {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 10px;
+        height: 20px;
+        align-items: center;
+    }
+    .pin-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background-color: #e2e8f0;
+        transition: all 0.2s ease;
+        border: 1px solid #cbd5e1;
+    }
+    .pin-dot.filled {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        transform: scale(1.1);
+    }
+    .pin-pad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        max-width: 280px;
+        margin: 0 auto 20px auto;
+        justify-content: center;
+    }
+    .pin-btn {
+        width: 72px; 
+        height: 72px; 
+        border-radius: 50%;
+        border: none;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        font-size: 1.8rem; 
+        font-weight: 600; 
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin: 0 auto;
+    }
+    .pin-btn:active {
+        background-color: var(--primary-soft);
+        transform: scale(0.9);
+        color: var(--primary);
+    }
+    .pin-btn.control {
+        background: transparent;
+        box-shadow: none;
+        color: var(--text-muted);
+        font-size: 1.2rem;
+    }
+    .pin-btn.control:hover { color: var(--text-dark); }
+    .pin-btn.control.delete { color: #ef4444; }
+
+    /* Regular Styles */
+    .text-gradient-animate {
+        background: linear-gradient(45deg, #3b82f6, #ec4899, #3b82f6);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientMove 3s linear infinite;
+        font-weight: 600; font-size: 1.2rem;
+    }
+    @keyframes gradientMove { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+    /* SweetAlert Custom */
+    div:where(.swal2-container) div:where(.swal2-popup) { border-radius: 25px; padding: 2rem; font-family: 'Kanit', sans-serif; }
+    
+    /* Navbar */
+    .navbar { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding: 10px 0; }
+    .brand-gradient { background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+    .navbar-brand img { height: 45px; width: auto; margin-right: 12px; }
+
+    /* Buttons */
+    .btn-gradient {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border: none; color: white; border-radius: 50px;
+        padding: 10px 24px; font-weight: 600;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        transition: all 0.3s;
+    }
+    .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4); color: white; }
+    
+    .btn-white {
+        background: white; border: 1px solid #e2e8f0; color: var(--text-dark);
+        border-radius: 50px; padding: 8px 20px; font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-white:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+    .btn-line { background-color: #06C755; border: none; color: white !important; font-weight: 600; box-shadow: 0 4px 6px rgba(6, 199, 85, 0.2); }
+    .btn-line:hover { background-color: #05a545; transform: translateY(-2px); color: white !important; }
+
+    /* Card & Grid Responsive Fix */
+    #resultsContainer { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+        gap: 1.5rem; 
+        width: 100%; 
+    }
+    @media (max-width: 768px) { #resultsContainer { grid-template-columns: 1fr; } }
+
+    .doc-card {
+        background: white; border: none; border-radius: var(--card-radius); box-shadow: var(--shadow-soft); margin-bottom: 0; transition: all 0.25s ease; padding: 20px; 
+        display: flex; flex-direction: column; justify-content: space-between; height: 100%; position: relative;
+        max-width: 100%; 
+        overflow: hidden; 
+    }
+    .doc-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+    
+    .doc-card-done { border: 2px solid #22c55e !important; background-color: #f0fdf4 !important; box-shadow: 0 10px 20px rgba(34, 197, 94, 0.15) !important; }
+    .doc-card-green { border-left: 6px solid #06c755 !important; background: linear-gradient(90deg, #e6f9ed 0%, #ffffff 70%) !important; }
+    .doc-card-yellow { border-left: 6px solid #FFC107 !important; background: linear-gradient(90deg, #fff9e3 0%, #ffffff 70%) !important; }
+    .doc-card-orange { border-left: 6px solid #FF8C00 !important; background: linear-gradient(90deg, #fff0e0 0%, #ffffff 70%) !important; }
+    .doc-card-red { border-left: 6px solid #DC143C !important; background: linear-gradient(90deg, #fde8ec 0%, #ffffff 70%) !important; }
+
+    .doc-id-badge { background: linear-gradient(135deg, var(--primary), #60a5fa); color: white; padding: 3px 12px; border-radius: 30px; font-weight: 500; font-size: 0.75rem; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); white-space: nowrap; }
+    .doc-group-badge { font-weight: 500; font-size: 0.7rem; background-color: #f0f9ff; color: var(--primary); padding: 4px 10px; border-radius: 20px; border: 1px solid #bae6fd; white-space: nowrap; max-width: 60%; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
+
+    .hidden { display: none !important; }
+    
+    .fab-add { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: linear-gradient(135deg, var(--secondary), var(--primary)); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(236, 72, 153, 0.4); z-index: 1000; font-size: 1.6rem; cursor: pointer; transition: transform 0.3s; }
+    .fab-add:hover { transform: scale(1.1) rotate(90deg); }
+
+    /* Inputs */
+    .form-control, .form-select { border-radius: var(--input-radius); padding: 12px 20px; border: 1px solid #e2e8f0; }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+    .search-input { border-radius: 50px; padding: 10px 45px 10px 50px; border: 2px solid #e2e8f0; background: #f8fafc; font-size: 1rem; }
+    .search-input:focus { background: white; border-color: var(--secondary); box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1); }
+    
+    /* PREVIEW MODAL STYLES */
+    .preview-modal-dialog { max-width: 90%; height: 90vh; margin: 1.75rem auto; }
+    .preview-modal-content { height: 100%; border-radius: 15px; overflow: hidden; }
+    .preview-modal-body { padding: 0; height: 100%; background-color: #000; }
+    .preview-frame { width: 100%; height: 100%; border: none; }
+
+    /* Mobile */
+    @media (max-width: 767.98px) {
+        .navbar-brand img { height: 35px; margin-right: 8px; }
+        .brand-gradient { font-size: 0.95rem; }
+        .auth-card { padding: 2rem 1rem; max-width: 95%; }
+        .pin-pad-grid { gap: 15px; max-width: 100%; justify-content: center; } 
+        .pin-btn { width: 72px; height: 72px; font-size: 1.8rem; }
+        .preview-modal-dialog { max-width: 98%; height: 85vh; margin: 10px auto; }
     }
   </style>
 </head>
-<body class="min-h-screen text-slate-800 flex flex-col pb-12">
+<body>
 
-  <!-- Header / Navigation Bar -->
-  <header class="sticky top-0 z-40 w-full glass-morphism border-b border-sky-100 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="bg-gradient-to-r from-sky-500 to-pink-500 p-2 rounded-xl text-white shadow-md">
-          <i data-lucide="cpu" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold bg-gradient-to-r from-sky-600 to-pink-600 bg-clip-text text-transparent">TechQueue</h1>
-          <p class="text-xs text-sky-600 font-medium tracking-wider">ระบบคิวงานเทคโนโลยีโรงเรียน</p>
-        </div>
-      </div>
-      
-      <!-- User Account Controls -->
-      <div class="flex items-center space-x-3">
-        <div id="userInfoDisplay" class="hidden md:flex items-center bg-white/60 border border-pink-100 rounded-full px-3 py-1 text-sm text-pink-600 font-medium">
-          <i data-lucide="user" class="w-4 h-4 mr-1.5 text-pink-500"></i>
-          <span id="currentUserLabel">ยังไม่ได้เข้าสู่ระบบ</span>
-        </div>
-        <button id="loginLogoutBtn" onclick="toggleAuthModal()" class="flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-gradient-to-r from-sky-500 to-pink-500 hover:from-sky-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-          <i data-lucide="log-in" class="w-4 h-4"></i>
-          <span id="btnAuthText">เข้าสู่ระบบ</span>
-        </button>
-      </div>
-    </div>
-  </header>
+  <!-- 🔐 GATEKEEPER: LOGIN / REGISTER (PIN STYLE) -->
+  <div id="authGatekeeper" class="auth-container">
+      <div class="auth-card">
+          <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/logohomeArtboard-1-2048x523.png" alt="Logo" class="auth-logo">
+          <div class="auth-title">ปากแพรกวิทยาคม</div>
+          <p class="text-muted small mb-4">ระบบรับหนังสือราชการ</p>
 
-  <!-- Mobile Bottom/Sub Navigation -->
-  <nav class="bg-white/95 border-b border-sky-100 sticky top-16 z-30">
-    <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-1 py-2 scrollbar-none">
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center space-x-1.5 transition-all text-sky-600 bg-sky-50">
-        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-        <span>แดชบอร์ด</span>
-      </button>
-      <button onclick="switchTab('all-jobs')" id="tab-all-jobs" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center space-x-1.5 transition-all text-slate-600 hover:bg-slate-50">
-        <i data-lucide="list-todo" class="w-4 h-4"></i>
-        <span>คิวงานทั้งหมด</span>
-      </button>
-      <button onclick="switchTab('calendar')" id="tab-calendar" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center space-x-1.5 transition-all text-slate-600 hover:bg-slate-50">
-        <i data-lucide="calendar" class="w-4 h-4"></i>
-        <span>ตารางงาน (ปฏิทิน)</span>
-      </button>
-      <button onclick="switchTab('completed')" id="tab-completed" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center space-x-1.5 transition-all text-slate-600 hover:bg-slate-50">
-        <i data-lucide="check-circle" class="w-4 h-4"></i>
-        <span>งานที่เสร็จแล้ว</span>
-      </button>
-      <button onclick="switchTab('my-jobs')" id="tab-my-jobs" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center space-x-1.5 transition-all text-slate-600 hover:bg-slate-50">
-        <i data-lucide="user-check" class="w-4 h-4"></i>
-        <span>งานของฉัน & สถานะ</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Main Container -->
-  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-    
-    <!-- Toast & In-App Notification Manager -->
-    <div id="inAppNotification" class="hidden mb-6 bg-pink-500 border-l-4 border-pink-700 text-white p-4 rounded-r-xl shadow-lg flex items-center justify-between animate-bounce">
-      <div class="flex items-center space-x-3">
-        <i data-lucide="bell-ring" class="w-6 h-6 animate-swing"></i>
-        <div>
-          <p class="font-bold">มีงานใหม่ในระบบ!</p>
-          <p class="text-xs text-pink-100">มีเพื่อนร่วมงานเพิ่มงานหรือแจ้งติดตามงานใหม่เข้าสู่คิวแล้ว</p>
-        </div>
-      </div>
-      <button onclick="dismissNotification()" class="text-white hover:text-pink-200">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-
-    <!-- SKELETON LOADING (แสดงตอนกำลังดึงข้อมูล) -->
-    <div id="skeletonLoading" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="h-28 bg-white rounded-2xl animate-pulse p-4 flex flex-col justify-between">
-          <div class="h-4 bg-slate-200 rounded w-1/2"></div>
-          <div class="h-8 bg-slate-300 rounded w-1/3"></div>
-        </div>
-        <div class="h-28 bg-white rounded-2xl animate-pulse p-4 flex flex-col justify-between">
-          <div class="h-4 bg-slate-200 rounded w-1/2"></div>
-          <div class="h-8 bg-slate-300 rounded w-1/3"></div>
-        </div>
-        <div class="h-28 bg-white rounded-2xl animate-pulse p-4 flex flex-col justify-between">
-          <div class="h-4 bg-slate-200 rounded w-1/2"></div>
-          <div class="h-8 bg-slate-300 rounded w-1/3"></div>
-        </div>
-        <div class="h-28 bg-white rounded-2xl animate-pulse p-4 flex flex-col justify-between">
-          <div class="h-4 bg-slate-200 rounded w-1/2"></div>
-          <div class="h-8 bg-slate-300 rounded w-1/3"></div>
-        </div>
-      </div>
-      <div class="h-96 bg-white rounded-2xl animate-pulse"></div>
-    </div>
-
-    <!-- MAIN APP CONTENT (ซ่อนขณะโหลด) -->
-    <div id="appContent" class="hidden space-y-8">
-      
-      <!-- ==================== TAB: DASHBOARD ==================== -->
-      <section id="sec-dashboard" class="space-y-6 tab-content">
-        <!-- Dashboard Statistics -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-gradient-to-br from-sky-400 to-sky-500 rounded-2xl p-4 sm:p-6 text-white shadow-md hover:shadow-lg transition">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs sm:text-sm font-medium text-sky-100">งานทั้งหมด</p>
-                <h3 id="statTotal" class="text-2xl sm:text-4xl font-bold mt-2">0</h3>
+          <!-- Login Form (Mobile PIN Style) -->
+          <div id="loginForm">
+              
+              <div class="mb-4 text-center text-secondary fw-bold">กรุณากดรหัส 6 หลักเพื่อเข้าใช้งาน</div>
+              
+              <!-- PIN DOTS -->
+              <div class="pin-display" id="pinDots">
+                  <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+                  <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
               </div>
-              <div class="bg-white/20 p-2.5 rounded-xl"><i data-lucide="folder-archive" class="w-6 h-6"></i></div>
-            </div>
-          </div>
-          <div class="bg-gradient-to-br from-amber-400 to-amber-500 rounded-2xl p-4 sm:p-6 text-white shadow-md hover:shadow-lg transition">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs sm:text-sm font-medium text-amber-100">รอดำเนินการ</p>
-                <h3 id="statPending" class="text-2xl sm:text-4xl font-bold mt-2">0</h3>
+              
+              <!-- Inline Error Message -->
+              <div id="loginError" class="text-danger small text-center mb-3" style="height: 20px; font-weight: 500;"></div>
+
+              <!-- PIN PAD -->
+              <div class="pin-pad-grid">
+                  <button class="pin-btn" onclick="addPin(1)">1</button>
+                  <button class="pin-btn" onclick="addPin(2)">2</button>
+                  <button class="pin-btn" onclick="addPin(3)">3</button>
+                  <button class="pin-btn" onclick="addPin(4)">4</button>
+                  <button class="pin-btn" onclick="addPin(5)">5</button>
+                  <button class="pin-btn" onclick="addPin(6)">6</button>
+                  <button class="pin-btn" onclick="addPin(7)">7</button>
+                  <button class="pin-btn" onclick="addPin(8)">8</button>
+                  <button class="pin-btn" onclick="addPin(9)">9</button>
+                  
+                  <button class="pin-btn control" onclick="clearPin()">
+                    <span style="font-size: 0.8rem; font-weight: normal;">ล้าง</span>
+                  </button>
+                  <button class="pin-btn" onclick="addPin(0)">0</button>
+                  <button class="pin-btn control delete" onclick="delPin()">
+                    <i class="fas fa-backspace"></i>
+                  </button>
               </div>
-              <div class="bg-white/20 p-2.5 rounded-xl"><i data-lucide="clock" class="w-6 h-6"></i></div>
-            </div>
-          </div>
-          <div class="bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-2xl p-4 sm:p-6 text-white shadow-md hover:shadow-lg transition">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs sm:text-sm font-medium text-emerald-100">ดำเนินการแล้ว</p>
-                <h3 id="statCompleted" class="text-2xl sm:text-4xl font-bold mt-2">0</h3>
+
+              <!-- 🔥 SKIP LOGIN BUTTON (Guest Mode) -->
+              <div class="d-grid px-4 mt-2">
+                  <button type="button" class="btn btn-sm btn-link text-secondary text-decoration-none" onclick="handleSkipLogin()">
+                      เข้าใช้งานโดยไม่เข้าสู่ระบบ (Guest) <i class="fas fa-chevron-right ms-1"></i>
+                  </button>
               </div>
-              <div class="bg-white/20 p-2.5 rounded-xl"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div>
-            </div>
-          </div>
-          <div class="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-4 sm:p-6 text-white shadow-md hover:shadow-lg transition">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs sm:text-sm font-medium text-rose-100">เลยกำหนดเวลา</p>
-                <h3 id="statOverdue" class="text-2xl sm:text-4xl font-bold mt-2">0</h3>
+
+              <div class="mt-4 pt-3 border-top">
+                  <p class="small text-muted mb-1">ยังไม่มีบัญชี?</p>
+                  <button type="button" onclick="toggleAuthMode('register')" class="btn btn-sm text-primary fw-bold">สมัครสมาชิกใหม่</button>
+                  <div class="small text-muted mt-2" style="font-size: 0.7rem;">*เมื่อมีการเข้าสู่ระบบ เอกสารที่ท่านรับผิดชอบจะแสดงก่อน*</div>
+                  <div class="brand-gradient fw-bold mt-2 small text-muted" style="font-size: 0.6rem;">เวอร์ชั่น 5.8 (GitHub Pages)</div>
               </div>
-              <div class="bg-white/20 p-2.5 rounded-xl"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+          </div>
+
+          <!-- Register Form (Simple: Name + PIN only) -->
+          <div id="registerForm" class="hidden">
+              <h5 class="fw-bold mb-3 text-secondary">สมัครสมาชิกใหม่</h5>
+              <div class="alert alert-light border small text-start p-2 mb-3 rounded-3">
+                  <i class="fas fa-info-circle text-primary me-1"></i> กรุณากรอกชื่อจริง และตั้งรหัสตัวเลข 6 หลักเพื่อใช้ในการเข้าสู่ระบบ
+              </div>
+              <form onsubmit="handleRegister(event)">
+                  <div class="mb-3">
+                      <label class="form-label small text-muted text-start w-100 ps-2">ชื่อ-นามสกุล</label>
+                      <input type="text" id="regName" class="form-control text-center" placeholder="เช่น นายรักเรียน เพียรศึกษา" required>
+                  </div>
+                  <div class="mb-4">
+                      <label class="form-label small text-muted text-start w-100 ps-2">ตั้งรหัสเข้าใช้งาน (ตัวเลข 6 หลัก)</label>
+                      <input type="tel" id="regPin" class="form-control text-center fs-4 letter-spacing-2 fw-bold text-primary" placeholder="000000" maxlength="6" inputmode="numeric" required pattern="[0-9]*">
+                  </div>
+                  
+                  <button type="submit" class="btn btn-gradient w-100 rounded-pill py-2 mb-3 fw-bold">ยืนยันการสมัคร</button>
+                  <button type="button" onclick="toggleAuthMode('login')" class="btn btn-light w-100 rounded-pill py-2 btn-sm text-muted">กลับไปเข้าสู่ระบบ</button>
+              </form>
+          </div>
+      </div>
+  </div>
+
+  <!-- 🏠 MAIN APPLICATION (Hidden Initially) -->
+  <div id="mainApp" class="hidden">
+      <!-- Navbar -->
+      <nav class="navbar navbar-expand-md sticky-top">
+        <div class="container d-flex flex-wrap align-items-center flex-nowrap">
+          <div class="navbar-brand d-flex align-items-center me-0 text-truncate">
+            <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/logohomeArtboard-1-2048x523.png" alt="Logo">
+            <div style="line-height: 1.1;">
+                                <div class="fs-8 brand-gradient">ระบบรับหนังสือ</div>
+                <div class="small text-muted" style="font-size: 0.7rem;">ปากแพรกวิทยาคม</div>
+  
+<div class="brand-gradient fw-bold mb-3 small text-muted" style="font-size: 0.5rem;">เวอร์ชั่น 5.8</div>
+            </div>
+          </div>
+          
+          <div class="d-flex align-items-center ms-auto">
+            <a href="https://line.me/R/ti/p/@528ywvwj" target="_blank" class="btn btn-line rounded-pill px-3 py-1 me-2" style="font-size: 0.9rem;">
+                <i class="fab fa-line fa-lg"></i> <span class="d-none d-sm-inline">รับแจ้งเตือน</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+               <div class="text-end me-1 d-none d-sm-block" style="line-height: 1.1;">
+                   <div class="fw-bold small text-dark" id="displayUserName">User</div>
+                   <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;" id="displayUserRole">Member</span>
+               </div>
+               <button class="btn btn-light btn-sm rounded-circle shadow-sm text-danger" onclick="logout()" title="ออกจากระบบ" style="width:38px; height:38px;">
+                   <i class="fas fa-power-off"></i>
+               </button>
             </div>
           </div>
         </div>
+      </nav>
 
-        <!-- Action Panel for Customer / Assignor -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-sky-100 shadow-sm">
-          <div>
-            <h2 class="text-lg font-bold text-slate-800">ยื่นคำร้องมอบหมายงานเทคโนโลยี</h2>
-            <p class="text-sm text-slate-500">กรอกข้อมูลงาน รายละเอียด วันต้องการใช้งาน พร้อมแนบไฟล์เก็บแยกโฟลเดอร์ให้คุณทันที</p>
-          </div>
-          <button onclick="openAssignJobModal()" class="flex items-center justify-center space-x-2 bg-gradient-to-r from-sky-500 to-pink-500 hover:from-sky-600 hover:to-pink-600 text-white font-semibold px-6 py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
-            <i data-lucide="plus-circle" class="w-5 h-5"></i>
-            <span>มอบหมายงานใหม่</span>
-          </button>
-        </div>
-
-        <!-- Quick View: Priority Jobs (ใกล้วันใช้งาน ดันขึ้นด้านบน) -->
-        <div>
-          <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2 mb-4">
-            <span class="w-2.5 h-6 bg-pink-500 rounded-full inline-block"></span>
-            <span>รายการงานเทคโนโลยีเร่งด่วน</span>
-          </h2>
-          <div id="priorityJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Rendered Cards -->
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB: ALL JOBS ==================== -->
-      <section id="sec-all-jobs" class="space-y-6 tab-content hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
-            <span class="w-2.5 h-6 bg-sky-500 rounded-full inline-block"></span>
-            <span>รายการคิวงานทั้งหมด</span>
-          </h2>
-          <div class="flex items-center space-x-2">
-            <div class="relative flex-grow sm:w-64">
-              <input type="text" id="allJobsSearch" oninput="filterAllJobs()" placeholder="ค้นหาตามชื่อ/รายละเอียด..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <i data-lucide="search" class="absolute left-3.5 top-2.5 w-4.5 h-4.5 text-slate-400"></i>
-            </div>
-          </div>
-        </div>
-        <div id="allJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Rendered Cards -->
-        </div>
-      </section>
-
-      <!-- ==================== TAB: CALENDAR ==================== -->
-      <section id="sec-calendar" class="space-y-6 tab-content hidden">
-        <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
-          <span class="w-2.5 h-6 bg-pink-500 rounded-full inline-block"></span>
-          <span>ปฏิทินแสดงงานเทคโนโลยีโรงเรียน</span>
-        </h2>
-        <div class="bg-white p-6 rounded-2xl border border-sky-100 shadow-sm">
-          <!-- Month Control -->
-          <div class="flex justify-between items-center mb-6">
-            <button onclick="changeMonth(-1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
-              <i data-lucide="chevron-left" class="w-5 h-5"></i>
-            </button>
-            <h3 id="calendarMonthTitle" class="text-lg font-bold text-slate-800">พฤษภาคม 2569</h3>
-            <button onclick="changeMonth(1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
-              <i data-lucide="chevron-right" class="w-5 h-5"></i>
-            </button>
-          </div>
-          <!-- Days Headers -->
-          <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-            <div>อา.</div><div>จ.</div><div>อ.</div><div>พ.</div><div>พฤ.</div><div>ศ.</div><div>ส.</div>
-          </div>
-          <!-- Calendar Days Grid -->
-          <div id="calendarGrid" class="grid grid-cols-7 gap-2 min-h-[350px]">
-            <!-- Rendered Calendar Cells -->
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB: COMPLETED ==================== -->
-      <section id="sec-completed" class="space-y-6 tab-content hidden">
-        <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
-          <span class="w-2.5 h-6 bg-emerald-500 rounded-full inline-block"></span>
-          <span>คลังผลงานที่ดำเนินการสำเร็จ</span>
-        </h2>
-        <div id="completedJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Completed Cards -->
-        </div>
-      </section>
-
-      <!-- ==================== TAB: MY JOBS & ROLE MANAGEMENT ==================== -->
-      <section id="sec-my-jobs" class="space-y-6 tab-content hidden">
-        <div class="bg-white p-6 rounded-2xl border border-sky-100 shadow-sm space-y-6">
-          <div class="flex justify-between items-center flex-wrap gap-4">
-            <div>
-              <h2 class="text-lg font-bold text-slate-800">แดชบอร์ดส่วนบุคคลและสถานะคิวงาน</h2>
-              <p class="text-sm text-slate-500">กรองเฉพาะงานที่คุณเป็นผู้รับผิดชอบ (สิทธิ์เจ้าหน้าที่) หรือผู้สั่งงาน (สิทธิ์ผู้ใช้ทั่วไป)</p>
-            </div>
-            <div class="flex space-x-2 bg-slate-100 p-1.5 rounded-xl">
-              <button onclick="setMyJobsView('user')" id="btnViewUser" class="px-4 py-2 text-xs font-bold rounded-lg transition text-slate-700 bg-white shadow-sm">ผู้สั่งงาน</button>
-              <button onclick="setMyJobsView('staff')" id="btnViewStaff" class="px-4 py-2 text-xs font-bold rounded-lg transition text-slate-400">เจ้าหน้าที่ผู้รับงาน</button>
-            </div>
-          </div>
-
-          <!-- Staff In-Charge Dashboard (Requires Password/Auth) -->
-          <div id="staffManagementSec" class="hidden space-y-6">
-            <div class="p-4 bg-sky-50 border border-sky-100 rounded-xl flex items-center justify-between">
-              <div class="flex items-center space-x-3">
-                <i data-lucide="shield-check" class="w-8 h-8 text-sky-600"></i>
-                <div>
-                  <h3 class="font-bold text-sky-900">พื้นที่ทำงานเจ้าหน้าที่</h3>
-                  <p class="text-xs text-sky-700">สามารถปรับปรุงสถานะงาน, ติ๊กรับงาน, ดำเนินการ และแจ้งเตือน LINE ไปยังเจ้าของงานได้โดยตรง</p>
+      <div class="container mt-4">
+        <!-- SEARCH VIEW -->
+        <div id="search-view">
+            <div class="search-card mb-4 bg-white rounded-4 p-4 shadow-sm border border-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-search text-secondary me-2"></i>ค้นหาหนังสือ</h5>
+                    <button id="btnAddData" class="btn btn-gradient btn-sm d-none shadow-sm" onclick="goToAddData()">
+                        <i class="fas fa-plus me-1"></i> ลงรับหนังสือ
+                    </button>
                 </div>
-              </div>
-            </div>
-            
-            <div id="staffJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <!-- Staff Actionable Cards -->
-            </div>
-          </div>
-
-          <!-- User Tasks (Normal logged-in user tracking) -->
-          <div id="userTrackingSec" class="space-y-6">
-            <div id="loggedOutWarning" class="p-4 bg-pink-50 border border-pink-100 rounded-xl flex items-center justify-between">
-              <div class="flex items-center space-x-3">
-                <i data-lucide="user-minus" class="w-8 h-8 text-pink-600 animate-pulse"></i>
-                <div>
-                  <h3 class="font-bold text-pink-900">ยังไม่ได้พิมพ์ชื่อเข้าสู่ระบบ</h3>
-                  <p class="text-xs text-pink-700">กรุณากดเข้าสู่ระบบโดยพิมพ์ชื่อผู้ใช้งาน เพื่อกรองเฉพาะคิวงานของตนเอง</p>
+                <div class="position-relative">
+                    <i class="fas fa-search position-absolute text-muted" style="left: 20px; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="text" class="form-control search-input" id="searchInput" placeholder="พิมพ์เลขที่, ชื่อเรื่อง หรือผู้รับผิดชอบ..." onkeyup="handleSearchInput(this)">
+                    <button class="btn btn-link text-muted position-absolute end-0 top-50 translate-middle-y me-3 text-decoration-none" onclick="clearSearch()" id="btnClearSearch" style="display:none;"><i class="fas fa-times-circle fs-5"></i></button>
                 </div>
-              </div>
-              <button onclick="toggleAuthModal()" class="bg-pink-600 hover:bg-pink-700 text-white font-medium text-xs px-4 py-2 rounded-lg">ลงทะเบียนสั่งงาน/ล็อกอิน</button>
             </div>
 
-            <div id="loggedInUserTracking" class="hidden space-y-6">
-              <h3 class="font-bold text-slate-800 flex items-center space-x-2">
-                <i data-lucide="check-square" class="w-5 h-5 text-pink-500"></i>
-                <span>ติดตามคิวงานและจัดการส่งงานของ <span id="trackingUserName" class="text-pink-600">...</span></span>
-              </h3>
-              <div id="userTrackedJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- User's own jobs -->
-              </div>
+            <div id="resultsContainer">
+                <div class="text-center py-5 text-muted col-span-2" style="grid-column: 1 / -1;">
+                    <div class="modern-loader mb-3"></div>
+                    <p class="small text-muted mt-3">กำลังโหลดข้อมูล...</p>
+                </div>
             </div>
-          </div>
         </div>
-      </section>
 
-    </div>
-  </main>
+        <!-- FAB (Admin) -->
+        <div id="fabAdd" class="fab-add d-none" onclick="goToAddData()"><i class="fas fa-plus"></i></div>
 
-  <!-- ==================== DIALOG/MODALS ==================== -->
+        <!-- RECORD FORM (With Dynamic File Add) -->
+        <div id="record-view" class="hidden">
+            <div class="row justify-content-center">
+                <div class="col-lg-8"> 
+                    <div class="d-flex align-items-center mb-4 ps-2">
+                        <button class="btn btn-white rounded-circle shadow-sm me-3" onclick="goBackToSearch()" style="width:45px; height:45px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-arrow-left text-dark"></i>
+                        </button>
+                        <div>
+                            <h4 class="mb-0 fw-bold brand-gradient" id="formTitle">บันทึกหนังสือรับใหม่</h4>
+                            <small class="text-muted">กรอกข้อมูลให้ครบถ้วนเพื่อบันทึกลงระบบ</small>
+                        </div>
+                    </div>
 
-  <!-- AUTH / LOGIN MODAL -->
-  <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden">
-    <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-sky-50 space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-slate-800">เข้าสู่ระบบด้วยชื่อ (ล็อกอินค้างไว้)</h3>
-        <button onclick="toggleAuthModal()" class="text-slate-400 hover:text-slate-600">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <p class="text-xs text-slate-500 leading-relaxed">
-        ระบุชื่อเพื่อบันทึกและล็อกอินในระบบ เมื่อสั่งงานชื่อนี้จะถูกอ้างอิงในการล็อกอินอัตโนมัติ คุณจะล็อกเอาต์เมื่อทำการกดล็อกเอาต์เท่านั้น
-      </p>
-      
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ชื่อ-นามสกุล ของท่าน</label>
-          <input type="text" id="authNameInput" placeholder="ตัวอย่าง: นายสมหมาย มั่นใจดี" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500">
+                    <div class="bg-white rounded-4 p-4 p-md-5 shadow-sm border border-white">
+                        <form id="myForm" onsubmit="handleFormSubmit(event)">
+                            <input type="hidden" id="recordedBy" name="recordedBy">
+                            <input type="hidden" id="recId" name="recId">
+                            
+                            <!-- Form Fields Simplified -->
+                            <div class="mb-4 text-end"><span class="badge bg-light text-primary border px-3 py-2 rounded-pill" id="idDisplay">Auto ID</span></div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3"><label class="form-label small text-muted">เลขที่หนังสือ</label><input type="text" class="form-control" name="t1" id="t1" required></div>
+                                <div class="col-md-3"><label class="form-label small text-muted">ลงวันที่</label><input type="date" class="form-control" name="t5" id="t5" required></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">จาก</label><select name="t2" id="t2" class="form-select" required></select></div>
+                                <div class="col-12"><label class="form-label small text-muted">เรื่อง</label><input type="text" class="form-control fw-bold" name="t3" id="t3" required></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">วันที่รับ</label><input type="date" class="form-control" name="t6" id="t6" required></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">กำหนดส่ง</label><input type="date" class="form-control" name="t7" id="t7"></div>
+                                <div class="col-12"><label class="form-label small text-muted">รายละเอียด</label>
+                                    <textarea class="form-control" name="t8" id="t8" rows="2"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="bg-light p-3 rounded-3 mb-4">
+                                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-user-tag me-2"></i>การมอบหมาย</h6>
+                                <div class="row g-3">
+                                    <div class="col-12"><label class="form-label small">ผู้รับผิดชอบ</label><select name="t4" id="t4" class="form-select" multiple size="4" required></select></div>
+                                    <div class="col-md-6"><label class="form-label small">กลุ่มงาน</label><select name="targetGroup" id="targetGroup" class="form-select" multiple size="3"></select></div>
+                                    <div class="col-md-6"><label class="form-label small">บอทผู้ส่ง</label><select name="botKey" id="botKey" class="form-select"></select></div>
+                                </div>
+                            </div>
+
+                            <div class="p-4 border rounded-4 mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <label class="fw-bold text-secondary"><i class="fas fa-paperclip me-2"></i>แนบไฟล์</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="addFileInput()">
+                                        <i class="fas fa-plus"></i> เพิ่มไฟล์
+                                    </button>
+                                </div>
+                                <div id="fileContainer" class="space-y-2">
+                                    <!-- Dynamic file inputs will go here -->
+                                    <div class="mb-2"><input type="file" class="form-control" name="myfile_1"></div>
+                                </div>
+                                <small class="text-muted d-block mt-2">* รองรับสูงสุด 10 ไฟล์</small>
+                            </div>
+
+                            <div class="d-flex gap-3">
+                                <button type="button" class="btn btn-light flex-fill py-3 rounded-pill" onclick="resetFormAndBack()">ยกเลิก</button>
+                                <button type="submit" class="btn btn-gradient flex-fill py-3 rounded-pill shadow" id="btnSubmit">บันทึกข้อมูล</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="staffAuthSection" class="hidden">
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">รหัสผ่านเจ้าหน้าที่ (สำหรับ Admin/Staff เท่านั้น)</label>
-          <input type="password" id="authPassInput" placeholder="ป้อนรหัสแอดมินหลังบ้าน" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500">
+      </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal fade" id="announcementModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-body text-center py-5">
+                             <h2 class="brand-gradient fw-bold mb-3">ประกาศแจ้งเตือน</h2>
+                  <h5 class="brand-gradient fw-bold mb-3">สามารถรับแจ้งเตือนส่วนตัวผ่านบัญชีทางการ</h5>
+<h7 class="brand-gradient fw-bold mb-3">ฟังก์ชั่น</h7>
+<br>*รับการแจ้งเตือนเมื่อมีหนังสือที่ท่านต้องรับผิดชอบ*
+<br>*แจ้งเตือนเมื่อระยะเวลาดำเนินการของหนังสือใกล้หมดเวลา*
+<br><h7 class="brand-gradient fw-bold mb-3">วิธีรับแจ้งเตือน</h7>
+<br>1. เพิ่มเพื่อนบัญชีไลน์ทางการด้านล่าง
+<br>2. พิมพ์ชื่อ+นามสกุล ในช่องแชท
+<br>3. รับแจ้งเตือน
+<br>หากมีปัญหาเพิ่มเติมส่วนไหน ติดต่อห้องธุรการ 😊🙏
+                <a href="https://line.me/R/ti/p/@528ywvwj" target="_blank" class="btn btn-line rounded-pill px-4 shadow">แอดไลน์รับแจ้งเตือน</a>
+            </div>
         </div>
-      </div>
-      
-      <div class="flex space-x-2 pt-2">
-        <button onclick="submitAuth()" class="flex-1 bg-gradient-to-r from-sky-500 to-pink-500 hover:from-sky-600 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow-md transition">
-          ยืนยันและเข้าสู่ระบบ
-        </button>
-      </div>
     </div>
   </div>
 
-  <!-- ASSIGN JOB / FORM MODAL -->
-  <div id="assignJobModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden overflow-y-auto">
-    <div class="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl border border-sky-50 my-8">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
-          <i data-lucide="pen-tool" class="text-sky-500 w-6 h-6"></i>
-          <span>มอบหมาย / สั่งคิวงานเทคโนโลยี</span>
-        </h3>
-        <button onclick="closeAssignJobModal()" class="text-slate-400 hover:text-slate-600">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="assignJobForm" onsubmit="handleJobSubmission(event)" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้มอบหมายงาน</label>
-            <input type="text" id="formCustomerName" required placeholder="ป้อนชื่อผู้มอบหมาย" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">กลุ่มสาระฯ / กลุ่มงาน</label>
-            <select id="formDepartment" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <option value="" disabled selected>กรุณาเลือกกลุ่มสาระฯ หรือฝ่ายงาน</option>
-              <!-- Populated via Script -->
-            </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">วันที่สั่งงาน (ปัจจุบัน)</label>
-            <input type="text" id="formOrderDate" readonly class="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500" value="">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">วันที่ต้องการเรียกใช้งาน</label>
-            <input type="date" id="formRequiredDate" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">ระดับความเร่งด่วน</label>
-            <select id="formPriority" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <option value="เขียว">ปกติ (สีเขียว)</option>
-              <option value="เหลือง">ปานกลาง (สีเหลือง)</option>
-              <option value="ส้ม">เร่งรัด (สีส้ม)</option>
-              <option value="แดง">ด่วนที่สุด (สีแดง)</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">รายละเอียดและลักษณะงาน</label>
-          <textarea id="formDetails" required rows="3" placeholder="ระบุประเภทงาน รายละเอียด เช่น งานสื่อกราฟิก, เอกสารวารสาร, งานเครื่องเสียง, ถ่ายภาพ เป็นต้น" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
-        </div>
-
-        <!-- File Attachment Area (Multi file upload) -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">อัปโหลดแนบ รูปภาพ / วิดีโอ / ไฟล์เสียง (เลือกพร้อมกันได้มากกว่า 1 ไฟล์)</label>
-          <div class="border-2 border-dashed border-sky-200 rounded-xl p-4 text-center cursor-pointer hover:bg-sky-50/50 transition relative">
-            <input type="file" id="formFiles" multiple onchange="handleFileSelect()" class="absolute inset-0 opacity-0 cursor-pointer">
-            <div class="space-y-1">
-              <i data-lucide="cloud-upload" class="w-8 h-8 text-sky-500 mx-auto"></i>
-              <p class="text-sm font-semibold text-slate-700">คลิกที่นี่ หรือ ลากไฟล์เพื่อแนบข้อมูล</p>
-              <p class="text-xs text-slate-400">ระบบจะทำการจัดสร้างโฟลเดอร์สำหรับงานนี้โดยเฉพาะเก็บลงคลาวด์</p>
+  <div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl" style="height:90vh;">
+        <div class="modal-content h-100 rounded-4 overflow-hidden bg-dark">
+            <div class="modal-header border-0 py-2 bg-dark">
+                <h6 class="text-white mb-0" id="previewModalTitle">Preview</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-          </div>
-          <!-- Preview selected files -->
-          <div id="fileSelectionList" class="mt-2 text-xs text-sky-600 font-medium space-y-1">
-            <!-- Selected files listed here -->
-          </div>
+            <div class="modal-body p-0 h-100"><iframe id="previewFrame" style="width:100%; height:100%; border:none;"></iframe></div>
         </div>
-
-        <div class="flex space-x-2 pt-2">
-          <button type="submit" id="submitFormBtn" class="flex-1 bg-gradient-to-r from-sky-500 to-pink-500 hover:from-sky-600 hover:to-pink-600 text-white font-bold py-3.5 rounded-xl shadow-md transition flex justify-center items-center">
-            <i data-lucide="send" class="w-4 h-4 mr-2"></i>
-            <span>ลงทะเบียนสั่งงานพร้อมระบบแจ้งเตือน</span>
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
-  <!-- JOB DETAILS & CONTROL MODAL (FOR STAFF & USER) -->
-  <div id="jobDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden">
-    <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-sky-50 space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 id="detailJobId" class="text-lg font-bold text-slate-800">JOB-xxxx</h3>
-        <button onclick="closeJobDetailsModal()" class="text-slate-400 hover:text-slate-600">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="space-y-3 text-sm">
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <p class="text-xs font-bold text-slate-400">ผู้สั่งงาน</p>
-            <p id="detailCustomerName" class="font-semibold text-slate-800">...</p>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400">กลุ่มสาระ/ฝ่าย</p>
-            <p id="detailDepartment" class="font-semibold text-slate-800">...</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <p class="text-xs font-bold text-slate-400">วันสั่งงาน</p>
-            <p id="detailOrderDate" class="text-slate-600">...</p>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400">วันต้องการใช้</p>
-            <p id="detailRequiredDate" class="text-slate-600 font-bold text-pink-600">...</p>
-          </div>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-slate-400">สถานะและระดับ</p>
-          <div class="flex space-x-2 mt-1">
-            <span id="detailStatusBadge" class="px-2 py-0.5 text-xs font-semibold rounded-full">...</span>
-            <span id="detailPriorityBadge" class="px-2 py-0.5 text-xs font-semibold rounded-full">...</span>
-          </div>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-slate-400">รายละเอียดงาน</p>
-          <div id="detailDetails" class="p-3 bg-slate-50 rounded-xl text-slate-700 min-h-[60px]">...</div>
-        </div>
-        
-        <div id="detailFolderSection">
-          <p class="text-xs font-bold text-slate-400">โฟลเดอร์รวบรวมไฟล์งาน</p>
-          <a id="detailFolderLink" href="#" target="_blank" class="mt-1 flex items-center space-x-1 text-sky-600 font-semibold hover:underline">
-            <i data-lucide="folder-open" class="w-4 h-4"></i>
-            <span>เปิดไดรฟ์เก็บข้อมูลตามสั่ง</span>
-          </a>
-        </div>
-
-        <hr class="border-slate-100">
-
-        <!-- Staff Action Area inside details -->
-        <div id="detailStaffActions" class="hidden space-y-3">
-          <h4 class="font-bold text-sky-700 text-xs uppercase">ผู้รับผิดชอบ & อัปเดตสถานะงาน</h4>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-1">ชื่อเจ้าหน้าที่ผู้รับ</label>
-              <input type="text" id="detailStaffNameInput" placeholder="ระบุผู้รับผิดชอบ" class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-1">เปลี่ยนสถานะ</label>
-              <select id="detailStatusSelect" class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg">
-                <option value="รอดำเนินการ">รอดำเนินการ</option>
-                <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-                <option value="รอกลับมาแก้ไข">รอกลับมาแก้ไข</option>
-                <option value="เสร็จสิ้น">เสร็จสิ้น</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">บันทึกความคืบหน้า / ลิงก์ส่งมอบงาน</label>
-            <textarea id="detailStaffNote" placeholder="รายละเอียดส่งมอบงาน/ลิงก์กราฟิก..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg" rows="2"></textarea>
-          </div>
-          <button onclick="saveJobStatusUpdate()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 text-xs rounded-lg transition shadow">
-            บันทึกความก้าวหน้า
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- JavaScript App Logic -->
   <script>
-    // การตั้งค่าปลายทาง GAS Web API
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzQOP2e3lgEsCKgNaqElgG2Kx7eB-Fw4egxF9OzVJNjxpDBXxkYkahONosI-9S1cbsrxQ/exec";
-    
-    // สถานะแอปพลิเคชันหลัก
-    let appState = {
-      jobs: [],
-      groups: [],
-      adminPass: 'admin1234',
-      currentUser: null, // โครงสร้าง { name: string, isStaff: boolean }
-      activeTab: 'dashboard',
-      myJobsView: 'user', // user หรือ staff
-      calendarDate: new Date(),
-      filesToUpload: [] // รายการไฟล์ base64 ที่แนบมา
-    };
+    // 🔥 URL ของ Google Apps Script Web App (API Backend ของเรา)
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzDmMguc4ZUxn-01d31a_N9tkh22AgHkg0wKE5V3lKYb_jQEBbnqoEmRjwp2LbjMLppwA/exec';
 
-    // โหลดไฟล์เริ่มต้นเมื่อหน้าเว็บพร้อม
-    window.addEventListener('load', () => {
-      lucide.createIcons();
-      document.getElementById('formOrderDate').value = new Date().toLocaleDateString('th-TH');
-      
-      // ดึงสิทธิ์ที่ล็อกอินค้างไว้ (LocalStorage)
-      const cachedUser = localStorage.getItem('techQueue_user');
-      if (cachedUser) {
-        appState.currentUser = JSON.parse(cachedUser);
-        updateUserUI();
-      }
-      
-      fetchData();
+    // --- ฟังก์ชัน API Wrapper กลางสำหรับคุยกับ Google Apps Script ---
+    async function callAPI(action, data = {}) {
+        try {
+            const response = await fetch(GAS_API_URL, {
+                method: 'POST',
+                // ต้องใช้ 'text/plain' เพื่อป้องกันเบราว์เซอร์ส่ง OPTIONS request (CORS Preflight) ไปหา GAS
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                body: JSON.stringify({ action: action, data: data })
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                return result.data;
+            } else {
+                throw new Error(result.message || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+            }
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    }
+
+
+    // --- CONFIG & INIT ---
+    let currentLoginPin = "";
+    let fileCount = 1;
+
+    $(document).ready(function() {
+       // Config LoadingOverlay แบบเดียว (Full Screen, Blue-Pink)
+       $.LoadingOverlaySetup({ 
+           background: "rgba(255, 255, 255, 0.95)", 
+           image: "", // ✅ Disable default image to show only custom one
+           custom: $("<div>", { class: "modern-loader" }),
+           text: "กำลังทำงาน...",
+           textClass: "loadingoverlay_text"
+       });
+
+       // Check Login State
+       const user = getSavedUser();
+       if (user) {
+           showApp(user);
+       } else {
+           $('#authGatekeeper').removeClass('hidden');
+           $('#mainApp').addClass('hidden');
+       }
     });
 
-    // ดึงข้อมูลผ่าน Google Apps Script
-    async function fetchData() {
-      showLoading(true);
-      try {
-        const response = await fetch(`${GAS_URL}?action=getInitialData`);
-        const data = await response.json();
-        
-        if (data.success) {
-          appState.jobs = data.jobs;
-          appState.groups = data.groups;
-          appState.adminPass = data.adminPass;
-          
-          // โหลดรายการแผนก/ฝ่าย สั่งงาน
-          populateGroupsDropdown();
-          // จัดทำแดชบอร์ดและบัตรงาน
-          renderDashboard();
-          renderCalendar();
-          
-          // หากมีงานใหม่มากกว่าคราวก่อน แสดงการแจ้งเตือน
-          checkForNewJobsNotification();
-        } else {
-          showToast('เกิดข้อผิดพลาดในการดึงข้อมูลจากชีต', 'error');
+    // --- FILE INPUT HANDLING ---
+    function addFileInput() {
+        if (fileCount >= 10) {
+            return Swal.fire('แจ้งเตือน', 'สามารถแนบไฟล์ได้สูงสุด 10 ไฟล์', 'warning');
         }
-      } catch (error) {
-        showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์หลังบ้านได้: ' + error.message, 'error');
-      } finally {
-        showLoading(false);
-      }
-    }
-
-    // ตัวแปรการจัดเก็บค่าเพื่อตรวจสอบการสั่นหรือแจ้งเตือน
-    let lastJobCount = parseInt(localStorage.getItem('techQueue_lastCount') || "0");
-    function checkForNewJobsNotification() {
-      const currentJobs = appState.jobs.length;
-      if (currentJobs > lastJobCount && lastJobCount > 0) {
-        // แจ้งเตือนในหน้าเว็บ (In-App Notification)
-        document.getElementById('inAppNotification').classList.remove('hidden');
-        // สั่นกระดิ่งเสียงจำลองหรือส่งสัญญาณ
-        playNotifySound();
-      }
-      localStorage.setItem('techQueue_lastCount', currentJobs);
-    }
-
-    function dismissNotification() {
-      document.getElementById('inAppNotification').classList.add('hidden');
-    }
-
-    function playNotifySound() {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.15);
-      } catch(e) {}
-    }
-
-    function showLoading(isLoading) {
-      const loader = document.getElementById('skeletonLoading');
-      const content = document.getElementById('appContent');
-      if (isLoading) {
-        loader.classList.remove('hidden');
-        content.classList.add('hidden');
-      } else {
-        loader.classList.add('hidden');
-        content.classList.remove('hidden');
-      }
-    }
-
-    // ลงรายการฝ่ายงาน
-    function populateGroupsDropdown() {
-      const select = document.getElementById('formDepartment');
-      select.innerHTML = '<option value="" disabled selected>กรุณาเลือกกลุ่มสาระฯ หรือฝ่ายงาน</option>';
-      appState.groups.forEach(g => {
-        const option = document.createElement('option');
-        option.value = g;
-        option.textContent = g;
-        select.appendChild(option);
-      });
-    }
-
-    // แสดงผล / เปลี่ยนสลับแท็บเมนู
-    function switchTab(tabId) {
-      appState.activeTab = tabId;
-      
-      // อัปเดตเมนู Active
-      document.querySelectorAll('.nav-tab').forEach(btn => {
-        btn.classList.remove('text-sky-600', 'bg-sky-50');
-        btn.classList.add('text-slate-600');
-      });
-      document.getElementById(`tab-${tabId}`).classList.remove('text-slate-600');
-      document.getElementById(`tab-${tabId}`).classList.add('text-sky-600', 'bg-sky-50');
-      
-      // อัปเดตส่วน Content
-      document.querySelectorAll('.tab-content').forEach(section => {
-        section.classList.add('hidden');
-      });
-      document.getElementById(`sec-${tabId}`).classList.remove('hidden');
-      
-      // จัดทำแผนที่สำหรับแท็บ
-      if (tabId === 'dashboard') renderDashboard();
-      if (tabId === 'all-jobs') renderAllJobs();
-      if (tabId === 'calendar') renderCalendar();
-      if (tabId === 'completed') renderCompletedJobs();
-      if (tabId === 'my-jobs') renderMyJobs();
-    }
-
-    // --- ตรรกะและประมวลผลงาน (เรียงลำดับ ใกล้วันกำหนดขึ้นหน้า ดัน IsFollowing ขึ้นบนสุด) ---
-    function getProcessedJobs() {
-      const now = new Date();
-      return [...appState.jobs].map(job => {
-        const requiredDate = new Date(job.RequiredDate);
-        const diffTime = requiredDate - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        // ความสำคัญตามระยะเวลา: 5 วัน หรือน้อยกว่าให้เพิ่ม priority เป็น "เร่งด่วนด่วนมาก"
-        let isCloseToDeadline = diffDays <= 5 && diffDays >= 0;
-        
-        return {
-          ...job,
-          diffDays: diffDays,
-          isCloseToDeadline: isCloseToDeadline
-        };
-      }).sort((a, b) => {
-        // ลำดับการเรียง:
-        // 1. งานที่ถูกกกดติดตาม/เร่ง (IsFollowing = TRUE)
-        if (a.IsFollowing && !b.IsFollowing) return -1;
-        if (!a.IsFollowing && b.IsFollowing) return 1;
-        
-        // 2. งานใกล้วันต้องการใช้ (diffDays <= 5) ให้ขึ้นมาเหนือกว่างานธรรมดา
-        if (a.isCloseToDeadline && !b.isCloseToDeadline) return -1;
-        if (!a.isCloseToDeadline && b.isCloseToDeadline) return 1;
-        
-        // 3. เรียงตามวันจัดงาน/วันต้องการใช้งานล่าสุด
-        return new Date(a.RequiredDate) - new Date(b.RequiredDate);
-      });
-    }
-
-    // จัดระเบียบการ์ดสำหรับแสดง
-    function renderJobCard(job, containerId, options = { showFollow: true, showAction: false }) {
-      const colorMap = {
-        'แดง': 'border-l-rose-500 bg-rose-50/60 text-rose-900',
-        'ส้ม': 'border-l-orange-400 bg-orange-50/60 text-orange-900',
-        'เหลือง': 'border-l-amber-400 bg-amber-50/60 text-amber-900',
-        'เขียว': 'border-l-emerald-400 bg-emerald-50/60 text-emerald-900'
-      };
-      
-      const badgeColor = {
-        'แดง': 'bg-rose-100 text-rose-700',
-        'ส้ม': 'bg-orange-100 text-orange-700',
-        'เหลือง': 'bg-amber-100 text-amber-700',
-        'เขียว': 'bg-emerald-100 text-emerald-700'
-      };
-
-      const borderClass = colorMap[job.Priority] || 'border-l-sky-500 bg-sky-50';
-      const badgeClass = badgeColor[job.Priority] || 'bg-sky-100 text-sky-700';
-      
-      const requiredDateStr = new Date(job.RequiredDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-      const container = document.getElementById(containerId);
-      
-      const card = document.createElement('div');
-      card.className = `border-l-4 ${borderClass} rounded-2xl p-4 glass-morphism shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between`;
-      
-      // ดันติดแท็กหากเป็นงานด่วนที่ใกล้วัน หรือ ถูกกดขยายการติดตาม
-      let tagHTML = '';
-      if (job.IsFollowing) {
-        tagHTML = `<span class="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-xl animate-pulse">เร่งติดตามงานด่วน</span>`;
-      } else if (job.isCloseToDeadline && job.Status !== 'เสร็จสิ้น') {
-        tagHTML = `<span class="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-xl">ใช้งานในอีก ${job.diffDays} วัน</span>`;
-      }
-
-      card.innerHTML = `
-        ${tagHTML}
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-mono font-bold text-slate-400">${job.JobID}</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${job.Priority}</span>
-          </div>
-          <h4 class="font-bold text-slate-800 line-clamp-1">${job.Details}</h4>
-          <p class="text-xs text-slate-500 mt-1 flex items-center">
-            <i data-lucide="user" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
-            <span>${job.CustomerName} • ${job.Department}</span>
-          </p>
-          <p class="text-xs text-slate-500 mt-1 flex items-center">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1 text-pink-500"></i>
-            <span>ต้องการใช้: <strong class="text-pink-600">${requiredDateStr}</strong></span>
-          </p>
-          
-          <div class="mt-3 flex items-center justify-between">
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${job.Status === 'เสร็จสิ้น' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${job.Status}</span>
-            <div class="text-[10px] text-slate-400 flex items-center">
-              <i data-lucide="hammer" class="w-3 h-3 mr-1"></i>
-              <span>${job.StaffInCharge || 'ยังไม่มีผู้รับผิดชอบ'}</span>
+        fileCount++;
+        const inputHtml = `<div class="mb-2 fade-in" id="file_row_${fileCount}">
+            <div class="input-group">
+                <input type="file" class="form-control" name="myfile_${fileCount}">
+                <button type="button" class="btn btn-outline-danger" onclick="removeFile(${fileCount})"><i class="fas fa-times"></i></button>
             </div>
-          </div>
-        </div>
-        
-        <div class="mt-4 pt-3 border-t border-slate-100/60 flex items-center space-x-2">
-          <button onclick="viewJobDetails('${job.JobID}')" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center space-x-1 shadow-sm">
-            <i data-lucide="info" class="w-3.5 h-3.5"></i>
-            <span>รายละเอียด</span>
-          </button>
-          
-          ${options.showFollow && job.Status !== 'เสร็จสิ้น' && !job.IsFollowing ? `
-            <button onclick="requestFollowJob('${job.JobID}')" class="bg-pink-100 hover:bg-pink-200 text-pink-600 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center justify-center space-x-1" title="ติดตามเร่งด่วน">
-              <i data-lucide="zap" class="w-3.5 h-3.5 fill-pink-600"></i>
-              <span class="hidden sm:inline">ติดตามด่วน</span>
-            </button>
-          ` : ''}
-        </div>
-      `;
-      container.appendChild(card);
-      lucide.createIcons();
+        </div>`;
+        $('#fileContainer').append(inputHtml);
     }
 
-    // แดชบอร์ดแรก
-    function renderDashboard() {
-      const processed = getProcessedJobs();
-      
-      // คำนวณสถิติ
-      const total = processed.length;
-      const pending = processed.filter(j => j.Status === 'รอดำเนินการ' || j.Status === 'กำลังดำเนินการ').length;
-      const completed = processed.filter(j => j.Status === 'เสร็จสิ้น').length;
-      const overdue = processed.filter(j => {
-        const reqDate = new Date(j.RequiredDate);
-        return reqDate < new Date() && j.Status !== 'เสร็จสิ้น';
-      }).length;
-
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statPending').textContent = pending;
-      document.getElementById('statCompleted').textContent = completed;
-      document.getElementById('statOverdue').textContent = overdue;
-
-      // รายการคิวงานเร่งรัดยอดนิยม (จำกัดแสดงผล 6 อันดับแรกบนสุดที่มีการเร่งรัด)
-      const container = document.getElementById('priorityJobsContainer');
-      container.innerHTML = '';
-      
-      const priorityJobs = processed.filter(j => j.Status !== 'เสร็จสิ้น').slice(0, 6);
-      if (priorityJobs.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-full py-12 text-center bg-white/60 rounded-2xl border border-sky-100">
-            <i data-lucide="smile" class="w-12 h-12 text-sky-400 mx-auto mb-2"></i>
-            <h4 class="font-bold text-slate-800">ไม่มีคิวงานค้างส่งในตอนนี้</h4>
-            <p class="text-xs text-slate-500">โรงเรียนมีความก้าวหน้า ดำเนินการจัดเก็บหมดแล้ว</p>
-          </div>
-        `;
-        lucide.createIcons();
-      } else {
-        priorityJobs.forEach(job => renderJobCard(job, 'priorityJobsContainer'));
-      }
+    function removeFile(id) {
+        $(`#file_row_${id}`).remove();
+        fileCount--;
     }
 
-    // คิวงานทั้งหมด
-    function renderAllJobs() {
-      const container = document.getElementById('allJobsContainer');
-      container.innerHTML = '';
-      
-      const activeJobs = getProcessedJobs().filter(j => j.Status !== 'เสร็จสิ้น');
-      if (activeJobs.length === 0) {
-        container.innerHTML = `<p class="text-center col-span-full py-8 text-slate-500">ไม่พบคิวงานที่กำลังรอการจัดดำเนิน</p>`;
-      } else {
-        activeJobs.forEach(job => renderJobCard(job, 'allJobsContainer'));
-      }
-    }
+    // --- PIN PAD FUNCTIONS ---
+    function addPin(num) {
+        // Clear Error Msg if typing
+        $('#loginError').text('');
 
-    function filterAllJobs() {
-      const keyword = document.getElementById('allJobsSearch').value.toLowerCase();
-      const container = document.getElementById('allJobsContainer');
-      container.innerHTML = '';
-      
-      const filtered = getProcessedJobs().filter(j => {
-        return j.Status !== 'เสร็จสิ้น' && (
-          j.JobID.toLowerCase().includes(keyword) ||
-          j.Details.toLowerCase().includes(keyword) ||
-          j.CustomerName.toLowerCase().includes(keyword) ||
-          j.Department.toLowerCase().includes(keyword)
-        );
-      });
-      
-      if (filtered.length === 0) {
-        container.innerHTML = `<p class="text-center col-span-full py-8 text-slate-500">ไม่พบคำค้นหาดังกล่าว</p>`;
-      } else {
-        filtered.forEach(job => renderJobCard(job, 'allJobsContainer'));
-      }
-    }
-
-    // งานที่สำเร็จแล้ว
-    function renderCompletedJobs() {
-      const container = document.getElementById('completedJobsContainer');
-      container.innerHTML = '';
-      
-      const completed = getProcessedJobs().filter(j => j.Status === 'เสร็จสิ้น');
-      if (completed.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-full py-12 text-center bg-white/60 rounded-2xl border border-sky-100">
-            <i data-lucide="folder-archive" class="w-12 h-12 text-slate-400 mx-auto mb-2"></i>
-            <h4 class="font-bold text-slate-800">ยังไม่มีงานที่จัดดำเนินการเก็บเสร็จ</h4>
-          </div>
-        `;
-        lucide.createIcons();
-      } else {
-        completed.forEach(job => renderJobCard(job, 'completedJobsContainer', { showFollow: false }));
-      }
-    }
-
-    // งานของฉัน / พื้นที่แอดมินเจ้าหน้าที่
-    function setMyJobsView(view) {
-      appState.myJobsView = view;
-      document.getElementById('btnViewUser').className = `px-4 py-2 text-xs font-bold rounded-lg transition ${view === 'user' ? 'text-slate-700 bg-white shadow-sm' : 'text-slate-400'}`;
-      document.getElementById('btnViewStaff').className = `px-4 py-2 text-xs font-bold rounded-lg transition ${view === 'staff' ? 'text-slate-700 bg-white shadow-sm' : 'text-slate-400'}`;
-      
-      renderMyJobs();
-    }
-
-    function renderMyJobs() {
-      const staffSection = document.getElementById('staffManagementSec');
-      const userSection = document.getElementById('userTrackingSec');
-      
-      if (appState.myJobsView === 'staff') {
-        staffSection.classList.remove('hidden');
-        userSection.classList.add('hidden');
-        
-        // ตรวจสอบความถูกต้องของสิทธิ์แอดมินก่อน
-        if (!appState.currentUser || !appState.currentUser.isStaff) {
-          // หากไม่มีสิทธิ์ ให้เปิดป๊อปอัปให้แอดมินล็อกอิน
-          openAuthModal(true);
-          return;
-        }
-        
-        renderStaffJobs();
-      } else {
-        staffSection.classList.add('hidden');
-        userSection.classList.remove('hidden');
-        
-        if (appState.currentUser) {
-          document.getElementById('loggedOutWarning').classList.add('hidden');
-          document.getElementById('loggedInUserTracking').classList.remove('hidden');
-          document.getElementById('trackingUserName').textContent = appState.currentUser.name;
-          
-          renderUserTrackedJobs();
-        } else {
-          document.getElementById('loggedOutWarning').classList.remove('hidden');
-          document.getElementById('loggedInUserTracking').classList.add('hidden');
-        }
-      }
-    }
-
-    // บัตรงานทั้งหมดสำหรับผู้สั่งที่ล็อกอิน
-    function renderUserTrackedJobs() {
-      const container = document.getElementById('userTrackedJobsContainer');
-      container.innerHTML = '';
-      
-      const myJobs = getProcessedJobs().filter(j => j.CustomerName.trim() === appState.currentUser.name.trim());
-      if (myJobs.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-full py-8 text-center bg-slate-50 rounded-xl">
-            <p class="text-xs text-slate-500">คุณยังไม่เคยลงทะเบียนสั่งงานในระบบ</p>
-          </div>
-        `;
-      } else {
-        myJobs.forEach(job => renderJobCard(job, 'userTrackedJobsContainer'));
-      }
-    }
-
-    // พื้นที่สำหรับเจ้าหน้าที่ผู้ดูแล
-    function renderStaffJobs() {
-      const container = document.getElementById('staffJobsContainer');
-      container.innerHTML = '';
-      
-      const allJobs = getProcessedJobs(); // แสดงทุกงานให้เจ้าหน้าที่สามารถจัดการติ๊กรับได้
-      if (allJobs.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">ไม่มีงานระบบเทคโนโลยีเข้ามาให้ดำเนินการ</p>`;
-      } else {
-        allJobs.forEach(job => {
-          // สร้างการ์ดงานสำหรับเจ้าหน้าที่
-          const card = document.createElement('div');
-          card.className = `border-l-4 ${job.Status === 'เสร็จสิ้น' ? 'border-l-emerald-500 bg-emerald-50/40' : 'border-l-sky-500 bg-white'} rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between`;
-          
-          card.innerHTML = `
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-mono font-bold">${job.JobID}</span>
-                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100">${job.Priority}</span>
-              </div>
-              <h4 class="font-bold text-slate-800">${job.Details}</h4>
-              <p class="text-xs text-slate-500 mt-1">ผู้สั่ง: ${job.CustomerName} (${job.Department})</p>
-              <p class="text-xs text-slate-500 mt-0.5">ต้องการใช้: <strong class="text-pink-600">${new Date(job.RequiredDate).toLocaleDateString('th-TH')}</strong></p>
-              
-              <div class="mt-3 flex items-center justify-between">
-                <span class="px-2 py-0.5 text-xs font-bold rounded-full ${job.Status === 'เสร็จสิ้น' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${job.Status}</span>
-                ${job.StaffInCharge ? `<span class="text-xs text-sky-600 font-medium">แอดมิน: ${job.StaffInCharge}</span>` : `<span class="text-xs text-rose-500 font-bold">ว่าง (รอผู้รับผิดชอบ)</span>`}
-              </div>
-            </div>
+        if(currentLoginPin.length < 6) {
+            currentLoginPin += num;
+            updatePinUI();
             
-            <div class="mt-4 pt-3 border-t border-slate-100 flex space-x-2">
-              <button onclick="viewJobDetails('${job.JobID}')" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-700 text-xs font-bold py-2 rounded-lg transition flex items-center justify-center space-x-1">
-                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                <span>จัดการงานนี้</span>
-              </button>
-            </div>
-          `;
-          container.appendChild(card);
-          lucide.createIcons();
-        });
-      }
-    }
-
-    // --- ตรรกะปฏิทินงาน (Calendar) ---
-    function renderCalendar() {
-      const year = appState.calendarDate.getFullYear();
-      const month = appState.calendarDate.getMonth();
-      
-      const monthNames = [
-        "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-        "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-      ];
-      
-      document.getElementById('calendarMonthTitle').textContent = `${monthNames[month]} ${year + 543}`;
-      
-      const firstDayIndex = new Date(year, month, 1).getDay();
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      
-      const grid = document.getElementById('calendarGrid');
-      grid.innerHTML = '';
-      
-      // ส่วนเติมเต็มเซลล์ว่างของสัปดาห์ก่อนหน้า
-      for (let i = 0; i < firstDayIndex; i++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = "bg-slate-50/50 rounded-xl min-h-[60px]";
-        grid.appendChild(emptyCell);
-      }
-      
-      // เติมวันในเดือน
-      for (let day = 1; day <= lastDay; day++) {
-        const cell = document.createElement('div');
-        cell.className = "bg-white border border-sky-50 rounded-xl p-1 min-h-[60px] flex flex-col justify-between hover:border-pink-300 transition relative";
-        
-        // หมายเลขวัน
-        const dayNumber = document.createElement('span');
-        dayNumber.className = "text-xs font-bold text-slate-400 self-start p-1";
-        dayNumber.textContent = day;
-        cell.appendChild(dayNumber);
-        
-        // หางานที่ตรงกับวันที่ต้องการใช้งาน
-        const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const matchJobs = appState.jobs.filter(j => {
-          const reqDate = new Date(j.RequiredDate);
-          const reqStr = `${reqDate.getFullYear()}-${String(reqDate.getMonth() + 1).padStart(2, '0')}-${String(reqDate.getDate()).padStart(2, '0')}`;
-          return reqStr === currentDateStr;
-        });
-        
-        if (matchJobs.length > 0) {
-          const jobBadgeContainer = document.createElement('div');
-          jobBadgeContainer.className = "space-y-1 mt-1";
-          
-          matchJobs.forEach(job => {
-            const badge = document.createElement('button');
-            badge.onclick = (e) => {
-              e.stopPropagation();
-              viewJobDetails(job.JobID);
-            };
-            
-            let colorClass = "bg-sky-500 text-white";
-            if (job.Priority === 'แดง') colorClass = "bg-rose-500 text-white";
-            if (job.Priority === 'ส้ม') colorClass = "bg-orange-400 text-white";
-            if (job.Priority === 'เหลือง') colorClass = "bg-amber-400 text-slate-800";
-            
-            badge.className = `w-full text-[9px] font-bold py-0.5 px-1 rounded truncate text-left flex items-center justify-between ${colorClass}`;
-            badge.innerHTML = `<span>${job.JobID}</span>`;
-            jobBadgeContainer.appendChild(badge);
-          });
-          
-          cell.appendChild(jobBadgeContainer);
+            // Auto-trigger login when 6 digits are entered
+            if(currentLoginPin.length === 6) {
+                setTimeout(submitLogin, 300); // Add a small delay for visual feedback of the 6th dot
+            }
         }
-        
-        grid.appendChild(cell);
-      }
     }
 
-    function changeMonth(direction) {
-      appState.calendarDate.setMonth(appState.calendarDate.getMonth() + direction);
-      renderCalendar();
+    function delPin() {
+        if(currentLoginPin.length > 0) {
+            currentLoginPin = currentLoginPin.slice(0, -1);
+            updatePinUI();
+            $('#loginError').text('');
+        }
     }
 
-    // --- รายละเอียดและการเปิดดูคิวงาน ---
-    let activeDetailJobId = null;
-    function viewJobDetails(jobId) {
-      const job = appState.jobs.find(j => j.JobID === jobId);
-      if (!job) return;
-      
-      activeDetailJobId = jobId;
-      
-      document.getElementById('detailJobId').textContent = job.JobID;
-      document.getElementById('detailCustomerName').textContent = job.CustomerName;
-      document.getElementById('detailDepartment').textContent = job.Department;
-      
-      document.getElementById('detailOrderDate').textContent = new Date(job.OrderDate).toLocaleDateString('th-TH');
-      document.getElementById('detailRequiredDate').textContent = new Date(job.RequiredDate).toLocaleDateString('th-TH');
-      document.getElementById('detailDetails').textContent = job.Details;
-      
-      // ป้ายสถานะ
-      const statusBadge = document.getElementById('detailStatusBadge');
-      statusBadge.textContent = job.Status;
-      statusBadge.className = `px-2 py-0.5 text-xs font-semibold rounded-full ${job.Status === 'เสร็จสิ้น' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`;
-      
-      const priorityBadge = document.getElementById('detailPriorityBadge');
-      priorityBadge.textContent = "ความสำคัญ: " + job.Priority;
-      priorityBadge.className = `px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700`;
-      
-      // ส่วนเปิดไดรฟ์เก็บไฟล์งาน
-      const folderSec = document.getElementById('detailFolderSection');
-      if (job.FolderURL) {
-        folderSec.classList.remove('hidden');
-        document.getElementById('detailFolderLink').href = job.FolderURL;
-      } else {
-        folderSec.classList.add('hidden');
-      }
-
-      // แสดงหรือซ่อนหน้าต่างจัดการของแอดมิน
-      const staffSection = document.getElementById('detailStaffActions');
-      if (appState.currentUser && appState.currentUser.isStaff) {
-        staffSection.classList.remove('hidden');
-        document.getElementById('detailStaffNameInput').value = job.StaffInCharge || appState.currentUser.name;
-        document.getElementById('detailStatusSelect').value = job.Status;
-        document.getElementById('detailStaffNote').value = job.StaffNote || '';
-      } else {
-        staffSection.classList.add('hidden');
-      }
-
-      document.getElementById('jobDetailsModal').classList.remove('hidden');
+    function clearPin() {
+        currentLoginPin = "";
+        updatePinUI();
     }
 
-    function closeJobDetailsModal() {
-      document.getElementById('jobDetailsModal').classList.add('hidden');
-    }
-
-    // เจ้าหน้าที่บันทึกการปรับสถานะคิวงาน
-    async function saveJobStatusUpdate() {
-      const staffInCharge = document.getElementById('detailStaffNameInput').value.trim();
-      const status = document.getElementById('detailStatusSelect').value;
-      const staffNote = document.getElementById('detailStaffNote').value.trim();
-      
-      if (!staffInCharge) {
-        showToast('กรุณากรอกชื่อผู้รับผิดชอบงาน', 'warning');
-        return;
-      }
-
-      closeJobDetailsModal();
-      showLoading(true);
-
-      try {
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'updateJobStatus',
-            jobId: activeDetailJobId,
-            status: status,
-            staffInCharge: staffInCharge,
-            staffNote: staffNote
-          })
+    function updatePinUI() {
+        const dots = document.querySelectorAll('.pin-dot');
+        dots.forEach((dot, index) => {
+            if(index < currentLoginPin.length) {
+                dot.classList.add('filled');
+            } else {
+                dot.classList.remove('filled');
+            }
         });
-        const result = await response.json();
-        if (result.success) {
-          showToast('ปรับปรุงสถานะงานเทคโนโลยีสำเร็จ', 'success');
-          fetchData(); // รีเฟรชข้อมูลหลังบ้านใหม่
+    }
+
+    // --- AUTH LOGIC ---
+    function getSavedUser() {
+        try { return JSON.parse(localStorage.getItem('pakprak_user')); } catch (e) { return null; }
+    }
+
+    function toggleAuthMode(mode) {
+        $('#loginError').text(''); // Clear error on switch
+        if(mode === 'register') {
+            $('#loginForm').addClass('hidden');
+            $('#registerForm').removeClass('hidden').hide().fadeIn(300);
+            clearPin();
         } else {
-          showToast('ไม่สามารถอัปเดตงานได้: ' + result.message, 'error');
+            $('#registerForm').addClass('hidden');
+            $('#loginForm').removeClass('hidden').hide().fadeIn(300);
         }
-      } catch(e) {
-        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
-      } finally {
-        showLoading(false);
-      }
     }
 
-    // กดติดตามเร่งด่วนส่งสัญญานไป LINE Bot หา แอดมิน (นายสาธิต)
-    async function requestFollowJob(jobId) {
-      showLoading(true);
-      try {
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'followJob',
-            jobId: jobId
-          })
-        });
-        const result = await response.json();
-        if (result.success) {
-          showToast('แจ้งเตือนติดตามงานด่วนพิเศษ สำเร็จแล้ว!', 'success');
-          fetchData();
-        } else {
-          showToast('ไม่พบข้อมูลงานเทคโนโลยีในระบบ', 'error');
+    // 🔥 New: Skip Login Function
+    function handleSkipLogin() {
+        const guestUser = { name: 'บุคคลทั่วไป', role: 'guest', token: '' };
+        // We can save to localStorage if we want persistence, or just pass to showApp
+        localStorage.setItem('pakprak_user', JSON.stringify(guestUser));
+        showApp(guestUser);
+    }
+
+    function submitLogin() {
+        const pin = currentLoginPin;
+        if(pin.length !== 6) {
+             // 🔥 แสดง Error ที่หน้า Login (Inline)
+             $('#loginError').text('กรุณากดรหัสให้ครบ 6 หลัก');
+             return;
         }
-      } catch(e) {
-        showToast('ไม่สามารถเชื่อมระบบสัญญาณ LINE Bot ได้', 'error');
-      } finally {
-        showLoading(false);
-      }
-    }
-
-    // --- จัดการการกรอกข้อมูล แนบไฟล์ (Base64) ---
-    function openAssignJobModal() {
-      if (!appState.currentUser) {
-        showToast('กรุณากรอกชื่อล็อกอินก่อนทำการมอบหมายงาน', 'warning');
-        openAuthModal(false);
-        return;
-      }
-      
-      // เติมชื่อผู้ส่งให้อัตโนมัติจากการล็อกอิน
-      document.getElementById('formCustomerName').value = appState.currentUser.name;
-      document.getElementById('assignJobModal').classList.remove('hidden');
-    }
-
-    function closeAssignJobModal() {
-      document.getElementById('assignJobModal').classList.add('hidden');
-    }
-
-    // ตรวจสอบการเลือกอัปโหลดไฟล์
-    function handleFileSelect() {
-      const input = document.getElementById('formFiles');
-      const container = document.getElementById('fileSelectionList');
-      container.innerHTML = '';
-      appState.filesToUpload = [];
-
-      if (input.files.length > 0) {
-        Array.from(input.files).forEach(file => {
-          const item = document.createElement('div');
-          item.className = 'flex items-center space-x-1.5';
-          item.innerHTML = `<i data-lucide="paperclip" class="w-3.5 h-3.5"></i> <span>${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)</span>`;
-          container.appendChild(item);
-          
-          // แปลงไฟล์เป็น Base64
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            appState.filesToUpload.push({
-              name: file.name,
-              mimeType: file.type,
-              base64: e.target.result
+        
+        $.LoadingOverlay("show", { text: "กำลังเข้าสู่ระบบ..." });
+        
+        callAPI('loginUser', { pin: pin })
+            .then(res => {
+                $.LoadingOverlay("hide");
+                localStorage.setItem('pakprak_user', JSON.stringify(res));
+                showApp(res);
+            })
+            .catch(err => {
+                $.LoadingOverlay("hide");
+                clearPin(); 
+                // 🔥 แสดง Error ที่หน้า Login (Inline) แทน Popup
+                $('#loginError').text(err.message || 'รหัส PIN ไม่ถูกต้อง หรือไม่พบผู้ใช้งาน').hide().fadeIn(200);
             });
-          };
-          reader.readAsDataURL(file);
-        });
-        lucide.createIcons();
-      }
     }
 
-    // ยื่นคำร้องลงทะเบียนมอบหมายงาน
-    async function handleJobSubmission(e) {
-      e.preventDefault();
-      
-      const customerName = document.getElementById('formCustomerName').value.trim();
-      const department = document.getElementById('formDepartment').value;
-      const requiredDate = document.getElementById('formRequiredDate').value;
-      const priority = document.getElementById('formPriority').value;
-      const details = document.getElementById('formDetails').value.trim();
-      
-      if (!requiredDate) {
-        showToast('กรุณากำหนดวันใช้งานให้เรียบร้อย', 'warning');
-        return;
-      }
+    function handleRegister(e) {
+        e.preventDefault();
+        const name = $('#regName').val().trim();
+        const pin = $('#regPin').val().trim();
 
-      closeAssignJobModal();
-      showLoading(true);
-
-      const payload = {
-        action: 'createJob',
-        customerName: customerName,
-        department: department,
-        requiredDate: requiredDate,
-        priority: priority,
-        details: details,
-        files: appState.filesToUpload
-      };
-
-      try {
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
+        if(!name || !pin) return Swal.fire('แจ้งเตือน', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+        if(pin.length !== 6 || isNaN(pin)) return Swal.fire('รหัสไม่ถูกต้อง', 'รหัสต้องเป็นตัวเลข 6 หลัก', 'warning');
         
-        if (result.success) {
-          showToast('บันทึกคิวงานและส่ง LINE FlexMessage แล้ว!', 'success');
-          // เคลียร์ฟอร์ม
-          document.getElementById('assignJobForm').reset();
-          document.getElementById('fileSelectionList').innerHTML = '';
-          appState.filesToUpload = [];
-          
-          fetchData(); // ดึงข้อมูลคิวงานใหม่
+        $.LoadingOverlay("show", { text: "กำลังลงทะเบียน..." });
+        
+        callAPI('registerTeacher', { name: name, pin: pin })
+            .then(res => {
+                $.LoadingOverlay("hide");
+                toggleAuthMode('login');
+            })
+            .catch(err => {
+                $.LoadingOverlay("hide");
+                Swal.fire({ icon: 'error', title: 'ลงทะเบียนไม่สำเร็จ', text: err.message, customClass: { popup: 'rounded-4 border-0' } });
+            });
+    }
+
+    function showApp(user) {
+        $('#authGatekeeper').fadeOut(300, function() {
+            $('#mainApp').removeClass('hidden').hide().fadeIn(300);
+        });
+        
+        if (user) {
+            $('#displayUserName').text(user.name);
+            $('#displayUserRole').text(user.role === 'admin' ? 'Admin' : (user.role === 'guest' ? 'Guest' : 'Teacher'));
+            $('#recordedBy').val(user.role === 'guest' ? 'Guest' : user.name);
         } else {
-          showToast('ล้มเหลวในการลงทะเบียนสั่งงาน: ' + result.message, 'error');
+            // Fallback just in case
+            $('#displayUserName').text('Guest');
         }
-      } catch (err) {
-        showToast('เซิร์ฟเวอร์เกิดขัดข้อง', 'error');
-      } finally {
-        showLoading(false);
-      }
-    }
 
-    // --- ล็อกอิน / สิทธิ์ผู้ใช้งาน ---
-    let authIsStaffOnly = false;
-    function toggleAuthModal() {
-      // หากล็อกอินอยู่แล้ว ให้ทำหน้าที่เป็น ล็อกเอาต์
-      if (appState.currentUser) {
-        localStorage.removeItem('techQueue_user');
-        appState.currentUser = null;
-        updateUserUI();
-        showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
-        switchTab('dashboard');
-        return;
-      }
-      openAuthModal(false);
-    }
-
-    function openAuthModal(isStaffOnly = false) {
-      authIsStaffOnly = isStaffOnly;
-      const staffSection = document.getElementById('staffAuthSection');
-      if (isStaffOnly) {
-        staffSection.classList.remove('hidden');
-      } else {
-        staffSection.classList.add('hidden');
-      }
-      document.getElementById('authModal').classList.remove('hidden');
-    }
-
-    function closeAuthModal() {
-      document.getElementById('authModal').classList.add('hidden');
-    }
-
-    function submitAuth() {
-      const name = document.getElementById('authNameInput').value.trim();
-      const password = document.getElementById('authPassInput').value.trim();
-      
-      if (!name) {
-        showToast('กรุณากรอกชื่อของท่านเพื่อยืนยันสิทธิ์', 'warning');
-        return;
-      }
-
-      if (authIsStaffOnly) {
-        if (password !== appState.adminPass) {
-          showToast('รหัสผ่านของเจ้าหน้าที่ไม่ถูกต้อง', 'error');
-          return;
+        // Logic to hide/show buttons based on role
+        if(user && user.role === 'admin') {
+            $('#btnAddData').removeClass('d-none');
+            $('#fabAdd').removeClass('d-none');
+        } else {
+            $('#btnAddData').addClass('d-none');
+            $('#fabAdd').addClass('d-none');
         }
-        appState.currentUser = { name: name, isStaff: true };
-      } else {
-        appState.currentUser = { name: name, isStaff: false };
-      }
 
-      // เซฟลง LocalStorage เพื่อให้ล็อกอินค้างไว้
-      localStorage.setItem('techQueue_user', JSON.stringify(appState.currentUser));
-      updateUserUI();
-      closeAuthModal();
-      
-      showToast('ยินดีต้อนรับเข้าสู่ระบบ ค้างล็อกอินเรียบร้อย', 'success');
-      renderMyJobs();
+        // Load Initial Data
+        performSearch();
+        loadDropdowns();
+        
+        if (!sessionStorage.getItem('announcementShown')) {
+           setTimeout(() => new bootstrap.Modal(document.getElementById('announcementModal')).show(), 1000);
+           sessionStorage.setItem('announcementShown', 'true');
+        }
     }
 
-    function updateUserUI() {
-      const btnAuthText = document.getElementById('btnAuthText');
-      const loginLogoutBtn = document.getElementById('loginLogoutBtn');
-      const userInfoDisplay = document.getElementById('userInfoDisplay');
-      const currentUserLabel = document.getElementById('currentUserLabel');
-
-      if (appState.currentUser) {
-        btnAuthText.textContent = "ออกจากระบบ";
-        loginLogoutBtn.className = "flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:shadow-lg";
-        userInfoDisplay.classList.remove('hidden');
-        currentUserLabel.textContent = appState.currentUser.name + (appState.currentUser.isStaff ? " (แอดมิน)" : "");
-      } else {
-        btnAuthText.textContent = "เข้าสู่ระบบ";
-        loginLogoutBtn.className = "flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-gradient-to-r from-sky-500 to-pink-500 hover:from-sky-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5";
-        userInfoDisplay.classList.add('hidden');
-      }
+    function logout() {
+        Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยัน', customClass: { popup: 'rounded-4 border-0' }, confirmButtonColor: '#ec4899' }).then((res) => {
+             if (res.isConfirmed) {
+                 localStorage.removeItem('pakprak_user');
+                 clearPin();
+                 $('#loginError').text('');
+                 $('#searchInput').val('');
+                 $('#resultsContainer').empty();
+                 
+                 // Fade out Main App, Fade in Login
+                 $('#mainApp').fadeOut(300, function() {
+                     $(this).addClass('hidden');
+                     $('#authGatekeeper').removeClass('hidden').css('opacity', 0).show().animate({ opacity: 1 }, 300);
+                 });
+             }
+        });
     }
 
-    // --- ข้อความแจ้งเตือนป๊อปอัปแบบ Custom Modal (ไม่ใช้ Alert) ---
-    function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `fixed bottom-4 right-4 z-50 flex items-center space-x-2 px-6 py-3.5 rounded-2xl shadow-xl border text-white transition-all duration-500 transform translate-y-10 opacity-0`;
-      
-      if (type === 'success') {
-        toast.classList.add('bg-emerald-500', 'border-emerald-600');
-        toast.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> <span>${message}</span>`;
-      } else if (type === 'error') {
-        toast.classList.add('bg-rose-500', 'border-rose-600');
-        toast.innerHTML = `<i data-lucide="x-circle" class="w-5 h-5"></i> <span>${message}</span>`;
-      } else if (type === 'warning') {
-        toast.classList.add('bg-amber-500', 'border-amber-600');
-        toast.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5"></i> <span>${message}</span>`;
-      } else {
-        toast.classList.add('bg-sky-500', 'border-sky-600');
-        toast.innerHTML = `<i data-lucide="info" class="w-5 h-5"></i> <span>${message}</span>`;
-      }
+    // --- MAIN APP LOGIC ---
+    function performSearch() {
+       const keyword = $('#searchInput').val();
+       const user = getSavedUser();
+       // If guest, user.name is 'บุคคลทั่วไป', sending it is fine, backend sorts it naturally
+       const userName = user ? user.name : null;
+       
+       if(window.searchTimeout) clearTimeout(window.searchTimeout);
 
-      document.body.appendChild(toast);
-      lucide.createIcons();
-      
-      // อนิเมชันกระเด้งขึ้น
-      setTimeout(() => {
-        toast.classList.remove('translate-y-10', 'opacity-0');
-        toast.classList.add('translate-y-0', 'opacity-100');
-      }, 50);
+       window.searchTimeout = setTimeout(() => {
+          // Note: No overlay here to keep UI fluid, just the internal loader
+          callAPI('searchData', { keyword: keyword, userName: userName })
+            .then(renderCards)
+            .catch(err => {
+                $('#resultsContainer').html(`<div class="text-center py-5 text-danger"><p>Error: ${err.message}</p></div>`);
+            });
+       }, 400);
+       
+       const clearBtn = document.getElementById('btnClearSearch');
+       if(keyword) clearBtn.style.display = 'block'; else clearBtn.style.display = 'none';
+    }
 
-      // ซ่อนและทำลายหลัง 3.5 วินาที
-      setTimeout(() => {
-        toast.classList.add('translate-y-10', 'opacity-0');
-        setTimeout(() => toast.remove(), 500);
-      }, 3500);
+    function handleSearchInput(input) { performSearch(); }
+    function clearSearch() { $('#searchInput').val(''); performSearch(); }
+    function setSearch(text) { $('#searchInput').val(text); performSearch(); }
+
+    // 🔥 Toggle Description Function (Read More)
+    window.toggleDesc = function(id) {
+        const shortSpan = document.getElementById(`desc-short-${id}`);
+        const fullSpan = document.getElementById(`desc-full-${id}`);
+        const btn = document.getElementById(`readmore-btn-${id}`);
+        
+        if (shortSpan.classList.contains('d-none')) {
+            // Currently showing full, switch to short
+            shortSpan.classList.remove('d-none');
+            fullSpan.classList.add('d-none');
+            btn.innerHTML = '... อ่านต่อ';
+        } else {
+            // Currently showing short, switch to full
+            shortSpan.classList.add('d-none');
+            fullSpan.classList.remove('d-none');
+            btn.innerHTML = ' ย่อลง';
+        }
+    }
+
+    function renderCards(data) {
+        const container = $('#resultsContainer');
+        container.empty();
+        if(!data || data.length === 0) {
+            container.html(`<div class="text-center py-5 text-muted col-span-2" style="grid-column: 1 / -1;"><i class="fas fa-folder-open fa-3x mb-3 text-secondary" style="opacity:0.3;"></i><p>ไม่พบข้อมูลหนังสือ</p></div>`);
+            return;
+        }
+
+        const user = getSavedUser();
+        const isAdmin = user && user.role === 'admin';
+        const isTeacher = user && (user.role === 'teacher' || user.role === 'admin');
+        const currentName = user ? user.name : '';
+
+        data.forEach(row => {
+            const id = row[0];
+            const bookNo = row[1];
+            const subject = row[3];
+            const groups = row[9] || '-';
+            const assign = (row[4] || '').split(',').map(s => s.trim());
+            const recDate = row[6] ? formatDate(row[6]) : '-';
+            // 🔥 Recorder Name (Column U / Index 20)
+            const recorderName = row[20] || '-'; 
+            
+            let dueDateText = 'รายละเอียดตามหนังสือ';
+            let statusCardClass = 'doc-card-green';
+            let countdownBadge = '';
+
+            if(row[7] && row[7] !== '' && row[7] !== '-') {
+                 dueDateText = formatDate(row[7]);
+                 const dueObj = new Date(row[7]);
+                 if (!isNaN(dueObj.getTime())) {
+                     const diffDays = Math.ceil((dueObj - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                     if (diffDays <= 1) { statusCardClass = 'doc-card-red'; countdownBadge = '<br><span class="badge bg-danger rounded-pill mt-1">วิกฤต</span>'; }
+                     else if (diffDays < 3) { statusCardClass = 'doc-card-orange'; countdownBadge = `<br><span class="badge bg-warning text-dark rounded-pill mt-1">เหลือ ${diffDays} วัน</span>`; }
+                     else if (diffDays <= 20) { statusCardClass = 'doc-card-yellow'; countdownBadge = `<br><span class="badge bg-warning text-dark rounded-pill mt-1" style="background-color:#FFC107!important;">เหลือ ${diffDays} วัน</span>`; }
+                     else { countdownBadge = `<br><span class="badge bg-success rounded-pill mt-1">เหลือ ${diffDays} วัน</span>`; }
+                 }
+            }
+
+            const files = [];
+            // Files are at indices 10 to 19 (10 slots)
+            for(let i=10; i<20; i++) {
+                if(row[i] && row[i] !== "") files.push(row[i]);
+            }
+            
+            let fileButtons = '';
+            files.forEach((url, idx) => {
+                if(url && url.trim() !== "" && !url.startsWith("Error")) {
+                    const btnClass = idx === 0 ? 'btn-white text-primary border-primary-soft' : 'btn-white text-muted border-light';
+                    let label = (idx === 0) ? "หนังสือนำ" : "สิ่งที่ส่งมาด้วย " + idx;
+                    fileButtons += `<button onclick="previewFile('${url}','${label}')" class="btn btn-sm ${btnClass} rounded-pill me-1 mb-1" style="font-size:0.75rem;"><i class="fas fa-paperclip me-1"></i> ${label}</button>`;
+                }
+            });
+
+            let assignHtml = '';
+            if(assign.length > 0 && assign[0] !== '') {
+                assign.forEach(p => {
+                    let clean = p.replace(" ✅", "").trim();
+                    let isAck = p.includes("✅");
+                    
+                    if(isAck) {
+                         assignHtml += `<span class="badge bg-success rounded-pill me-1 mb-1 fw-normal cursor-pointer" onclick="setSearch('${clean}')"><i class="fas fa-check-circle me-1"></i>${clean}</span>`;
+                    } 
+                    else if(clean === currentName && isTeacher) {
+                         assignHtml += `<span class="badge bg-white text-primary border border-primary rounded-pill me-1 mb-1 cursor-pointer" onclick="handleAcknowledge('${id}', '${clean}')"><i class="far fa-square me-1"></i>${clean} (กดรับทราบ)</span>`;
+                    } 
+                    else {
+                         assignHtml += `<span class="badge bg-light text-dark border rounded-pill me-1 mb-1 fw-normal cursor-pointer hover-shadow" onclick="setSearch('${clean}')">${clean}</span>`;
+                    }
+                });
+            } else { assignHtml = '<span class="text-muted small">-</span>'; }
+
+            const lastCol = row[row.length-1];
+            const isDoneCompat = (lastCol && lastCol.includes('ดำเนินการแล้ว')) || (row[21] && row[21].includes('ดำเนินการแล้ว'));
+            
+            const cardClass = isDoneCompat ? 'doc-card doc-card-done' : `doc-card ${statusCardClass}`;
+            let statusHtml = isDoneCompat ? `<div class="mt-2 text-center"><span class="badge bg-success rounded-pill px-3 py-2 shadow-sm"><i class="fas fa-check-circle me-1"></i> ดำเนินการแล้ว</span></div>` : (isAdmin || isTeacher ? `<div class="mt-2 text-center"><button class="btn btn-outline-success btn-sm rounded-pill px-3 w-100" onclick="handleMarkDone('${id}')">ยืนยันการดำเนินการ</button></div>` : '');
+            
+            let adminActions = isAdmin ? `<div class="border-top pt-2 mt-auto d-flex justify-content-end gap-2"><button class="btn btn-light btn-sm rounded-pill text-muted px-2" onclick="prepareEdit('${encodeURIComponent(JSON.stringify(row))}')"><i class="fas fa-pen"></i></button><button class="btn btn-light btn-sm rounded-pill text-danger px-2" onclick="confirmDelete('${id}')"><i class="fas fa-trash"></i></button></div>` : '';
+
+            // 🔥 Logic for Read More / Description
+            const detailsRaw = row[8] || '-';
+            let detailsHtml = '';
+            if (detailsRaw.length > 100) {
+                detailsHtml = `
+                    <div class="small text-muted mb-2">
+                        <i class="fas fa-info-circle me-1"></i> 
+                        <span id="desc-short-${id}">${detailsRaw.substring(0, 100)}</span>
+                        <span id="desc-full-${id}" class="d-none">${detailsRaw}</span>
+                        <a href="javascript:void(0)" id="readmore-btn-${id}" onclick="toggleDesc('${id}')" class="text-primary text-decoration-none fw-bold" style="font-size:0.8em;">... อ่านต่อ</a>
+                    </div>
+                `;
+            } else {
+                detailsHtml = `<div class="small text-muted mb-2"><i class="fas fa-info-circle me-1"></i> ${detailsRaw}</div>`;
+            }
+
+            container.append(`
+                <div class="${cardClass}">
+                    <div style="flex:1;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="doc-id-badge">${bookNo}</span>
+                            <span class="doc-group-badge text-truncate" style="max-width: 50%;" title="${groups}">${groups}</span>
+                        </div>
+                        <h5 class="fw-bold mb-2 text-break" style="font-size:1.1rem; line-height:1.4; word-wrap: break-word;">${subject}</h5>
+                        <div class="bg-light rounded-3 p-2 mb-2"><small class="text-secondary fw-bold d-block mb-1">ผู้รับผิดชอบ</small><div class="d-flex flex-wrap">${assignHtml}</div></div>
+                        <div class="row g-2 mb-2 bg-white border rounded-3 p-2 mx-0"><div class="col-6 border-end"><small class="text-muted d-block" style="font-size:0.7rem;">รับ</small><span class="fw-bold small">${recDate}</span></div><div class="col-6 ps-3"><small class="text-muted d-block" style="font-size:0.7rem;">ส่ง</small><span class="fw-bold small text-primary">${dueDateText}</span>${countdownBadge}</div></div>
+                        ${detailsHtml}
+                        <div class="mb-2">${fileButtons}</div>
+                        ${statusHtml}
+                    </div>
+                    <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+                        <small class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user-edit me-1"></i> ${recorderName}</small>
+                        ${adminActions.replace('<div class="border-top pt-2 mt-auto d-flex justify-content-end gap-2">', '<div class="d-flex gap-2">').replace('</div>', '</div>')} 
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function handleAcknowledge(id, name) {
+        Swal.fire({ title: 'รับทราบงานนี้?', icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยัน', customClass: { popup: 'rounded-4 border-0' } }).then((res) => {
+            if (res.isConfirmed) {
+                $.LoadingOverlay("show", { text: "กำลังบันทึก..." });
+                callAPI('acknowledgeJob', { id: id, name: name })
+                    .then(() => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire({icon:'success', title:'บันทึกแล้ว', timer:1000, showConfirmButton:false}); 
+                        performSearch(); 
+                    })
+                    .catch(err => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire('Error', err.message, 'error'); 
+                    });
+            }
+        });
+    }
+
+    function handleMarkDone(id) {
+        Swal.fire({ title: 'ยืนยันดำเนินการเสร็จสิ้น?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยัน', customClass: { popup: 'rounded-4 border-0' } }).then((res) => {
+            if (res.isConfirmed) {
+                $.LoadingOverlay("show", { text: "กำลังบันทึก..." });
+                callAPI('updateStatus', { id: id, userName: getSavedUser().name })
+                    .then(() => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire({icon:'success', title:'อัปเดตแล้ว', timer:1000, showConfirmButton:false}); 
+                        performSearch(); 
+                    })
+                    .catch(err => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire('Error', err.message, 'error'); 
+                    });
+            }
+        });
+    }
+
+    function confirmDelete(id) {
+        Swal.fire({ title: 'ลบข้อมูล?', text: 'ไม่สามารถกู้คืนได้', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ลบ', customClass: { popup: 'rounded-4 border-0' } }).then((res) => {
+            if (res.isConfirmed) {
+                $.LoadingOverlay("show", { text: "กำลังลบข้อมูล..." });
+                callAPI('deleteData', { id: id })
+                    .then(() => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire({icon:'success', title:'ลบสำเร็จ', timer:1000, showConfirmButton:false}); 
+                        performSearch(); 
+                    })
+                    .catch(err => { 
+                        $.LoadingOverlay("hide"); 
+                        Swal.fire('Error', err.message, 'error'); 
+                    });
+            }
+        });
+    }
+
+    function prepareEdit(enc) {
+        const row = JSON.parse(decodeURIComponent(enc));
+        $('#recId').val(row[0]); $('#t1').val(row[1].replace(/'/,'')); $('#t2').val(row[2]); $('#t3').val(row[3]);
+        $('#t4').val(row[4] ? row[4].split(',').map(s=>s.trim()) : []);
+        if(row[5]) document.getElementById('t5').valueAsDate = new Date(row[5]);
+        if(row[6]) document.getElementById('t6').valueAsDate = new Date(row[6]);
+        if(row[7]) document.getElementById('t7').valueAsDate = new Date(row[7]);
+        $('#t8').val(row[8]);
+        
+        $('#fileContainer').empty();
+        fileCount = 0;
+        for(let i=10; i<20; i++) {
+            if(row[i] && row[i] !== "") {
+                // Should technically check if files exist, but for 'add more' simplicity we just reset inputs
+            }
+        }
+        addFileInput();
+        
+        $('#formTitle').text('แก้ไขข้อมูล'); $('#btnSubmit').text('บันทึกการแก้ไข');
+        goBackToSearch(); $('#search-view').addClass('hidden'); $('#record-view').removeClass('hidden');
+    }
+
+    function goToAddData() {
+        document.getElementById("myForm").reset(); $('#recId').val(''); 
+        $('#fileContainer').empty();
+        fileCount = 0;
+        addFileInput();
+        
+        $('#formTitle').text('บันทึกหนังสือรับใหม่'); $('#btnSubmit').text('บันทึกข้อมูล');
+        goBackToSearch(); $('#search-view').addClass('hidden'); $('#record-view').removeClass('hidden');
+    }
+
+    function goBackToSearch() { $('#record-view').addClass('hidden'); $('#search-view').removeClass('hidden'); }
+    function resetFormAndBack() { document.getElementById("myForm").reset(); goBackToSearch(); }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        // 1. Check file sizes first
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        let totalSize = 0;
+        fileInputs.forEach(input => {
+             if(input.files[0]) totalSize += input.files[0].size;
+        });
+        
+        if(totalSize > 45 * 1024 * 1024) { // 45MB limit safety
+             return Swal.fire('ไฟล์ใหญ่เกินไป', 'รวมขนาดไฟล์ต้องไม่เกิน 45MB', 'error');
+        }
+
+        // 2. Show Loading with Progress
+        $.LoadingOverlay("show", {
+            image: "",
+            custom: $("<div>", { id: "upload-progress", class: "modern-loader" }),
+            text: "กำลังเตรียมข้อมูล 0%",
+            textClass: "loadingoverlay_text"
+        });
+        
+        const fd = $('#myForm').serializeArray();
+        
+        try {
+            // Read files sequentially to track progress accurately
+            const processedFiles = [];
+            let processedCount = 0;
+            const totalFiles = Array.from(fileInputs).filter(i => i.files.length > 0).length;
+            
+            if (totalFiles === 0) {
+                 $("#upload-progress").parent().find(".loadingoverlay_text").text("กำลังส่งข้อมูล...");
+            }
+
+            for (const input of fileInputs) {
+                if (input.files.length > 0) {
+                     // Update Text
+                     const percent = Math.round((processedCount / totalFiles) * 100);
+                     $("#upload-progress").parent().find(".loadingoverlay_text").text(`กำลังเตรียมไฟล์ ${percent}%`);
+                     
+                     const fileData = await readURL(input);
+                     if (fileData) {
+                        const inputName = input.name || `myfile_${processedFiles.length + 1}`;
+                        fd.push({name: inputName, value: fileData});
+                     }
+                     processedCount++;
+                }
+            }
+            
+            $("#upload-progress").parent().find(".loadingoverlay_text").text("กำลังอัพโหลด 100% (กรุณารอสักครู่)");
+
+            const u = getSavedUser();
+            if(u) { fd.push({name:'name', value:u.name}); fd.push({name:'userToken', value:u.token}); }
+            
+            // ส่งข้อมูลทั้งหมดไปที่ API Backend
+            callAPI('processForm', { formdata: fd })
+                .then(res => {
+                    $.LoadingOverlay("hide");
+                    Swal.fire({icon:'success', title:'สำเร็จ', timer:1500, showConfirmButton:false});
+                    resetFormAndBack(); 
+                    performSearch();
+                })
+                .catch(err => { 
+                    $.LoadingOverlay("hide"); 
+                    console.error(err);
+                    Swal.fire('Error', 'บันทึกไม่สำเร็จ: ' + err.message, 'error'); 
+                });
+
+        } catch(e) { 
+            $.LoadingOverlay("hide"); 
+            console.error(e);
+            Swal.fire('Error', 'เกิดข้อผิดพลาด: ' + e.message, 'error');
+        }
+    }
+
+    function readURL(input) {
+        return new Promise(res => {
+            if(input.files && input.files[0]) {
+                const r = new FileReader();
+                r.onload = e => res({data:e.target.result, name:input.files[0].name});
+                r.readAsDataURL(input.files[0]);
+            } else res(null);
+        });
+    }
+
+    function formatDate(d) {
+        if(!d || d === 'รายละเอียดตามหนังสือ') return d;
+        const date = new Date(d);
+        return isNaN(date) ? d : date.toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'2-digit'});
+    }
+
+    function previewFile(url, title) {
+        let pUrl = url;
+        if(url.includes("drive.google.com") || url.includes("docs.google.com")) pUrl = url.replace(/\/view.*/,'/preview').replace(/\/edit.*/,'/preview');
+        $('#previewModalTitle').text(title); $('#previewFrame').attr('src', pUrl);
+        new bootstrap.Modal(document.getElementById('previewModal')).show();
+    }
+
+    function loadDropdowns() {
+        // ใช้ API ดึงข้อมูลแทน google.script.run
+        callAPI('getResponsiblePersons')
+            .then(d => { $('#t4').empty(); d.forEach(v => $('#t4').append(`<option value="${v}">${v}</option>`)); })
+            .catch(console.error);
+            
+        callAPI('getT2Options')
+            .then(d => { $('#t2').empty().append('<option disabled selected>เลือกหน่วยงาน...</option>'); d.forEach(v => $('#t2').append(`<option value="${v}">${v}</option>`)); })
+            .catch(console.error);
+            
+        callAPI('getGroupTargets')
+            .then(d => { $('#targetGroup').empty(); d.forEach(t => $('#targetGroup').append(`<option value="${t.key}">${t.name}</option>`)); })
+            .catch(console.error);
+            
+        callAPI('getLineBotOptions')
+            .then(d => { $('#botKey').empty(); d.forEach(b => $('#botKey').append(`<option value="${b.key}">${b.name}</option>`)); })
+            .catch(console.error);
     }
   </script>
 </body>
